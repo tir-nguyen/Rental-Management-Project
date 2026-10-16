@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cho thuê đồ sinh viên Hà Nội</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="{{ url_for('index') }}" class="brand">Cho<span>Thuê</span></a>
+      {% if current_user.is_authenticated %}
+      <div class="header-actions">
+        <div class="header-profile" aria-label="Tài khoản {{ current_user.full_name }}">
+          <span class="profile-avatar">{{ current_user.full_name.strip()[:1]|upper }}</span>
+          <span class="profile-name">{{ current_user.full_name }}</span>
+        </div>
+        <a class="notification-button" href="{{ url_for('notifications') }}" aria-label="Thông báo{% if unread_notification_count %}, {{ unread_notification_count }} chưa đọc{% endif %}" title="Thông báo">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+          {% if unread_notification_count %}<span class="notification-count">{{ '99+' if unread_notification_count > 99 else unread_notification_count }}</span>{% endif %}
+        </a>
+        <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="logout-button" type="submit"><span aria-hidden="true">↪</span> Đăng xuất</button>
+        </form>
+      </div>
+      {% else %}
+      <div class="header-actions"><a href="{{ url_for('login') }}" class="login-link">Đăng nhập</a><a href="{{ url_for('register') }}" class="register-link">Tạo tài khoản</a></div>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if current_user.is_authenticated %}
+  <nav class="bottom-nav">
+    <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint=='index' else '' }}">
+      <span class="ic">⌂</span><span>Khám phá</span>
+    </a>
+    <a href="{{ url_for('my_listings') }}" class="{{ 'active' if request.endpoint=='my_listings' else '' }}">
+      <span class="ic">▤</span><span>Tin của tôi</span>
+    </a>
+    <a href="{{ url_for('create_listing') }}" class="{{ 'active' if request.endpoint=='create_listing' else '' }}">
+      <span class="ic">＋</span><span>Đăng tin</span>
+    </a>
+    <a href="{{ url_for('booking_list') }}" class="{{ 'active' if request.endpoint in ['booking_list','booking_detail'] else '' }}">
+      <span class="ic">▦</span><span>Hợp đồng</span>
+    </a>
+    <a href="{{ url_for('notifications') }}" class="{{ 'active' if request.endpoint in ['notifications','mark_notification_read'] else '' }}">
+      <span class="ic">♧</span><span>Thông báo{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</span>
+    </a>
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint=='admin_dashboard' else '' }}">
+      <span class="ic">⚙</span><span>Admin</span>
+    </a>
+    {% endif %}
+  </nav>
+  {% endif %}
+
+  <main class="page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+</body>
+</html>

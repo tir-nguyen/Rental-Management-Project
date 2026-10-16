@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Xác minh tài khoản{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Xác Minh Tài Khoản</h1>
+
+  <div class="field">
+    <label>Email</label>
+    <input type="text" value="{{ current_user.school_email }}" disabled>
+  </div>
+  <div class="field">
+    <label>Số điện thoại</label>
+    <input type="text" value="{{ current_user.phone_number }}" disabled>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field">
+      <label>Mã OTP (4 số)</label>
+      <input type="text" name="otp" maxlength="4" placeholder="4821">
+      <small>(Demo) Mã đã được gửi ở thông báo phía trên khi đăng ký.</small>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <label>Ảnh thẻ sinh viên</label>
+      <input type="file" name="kyc_card" accept="image/*">
+      <small>Tải lên thẻ sinh viên để Admin duyệt, mở khóa Trust Score đầy đủ.</small>
+    </div>
+
+    <button class="btn" type="submit">Hoàn Tất</button>
+  </form>
+
+  {% if current_user.kyc_status != "NONE" %}
+  <p class="muted auth-status">Trạng thái KYC hiện tại: <b>{{ current_user.kyc_status }}</b></p>
+  {% endif %}
+</div>
+{% endblock %}

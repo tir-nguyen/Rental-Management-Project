@@ -1,0 +1,344 @@
+{
+  "initial_accounts": [
+    {
+      "full_name": "Admin",
+      "school_email": "admin@neu.edu.vn",
+      "phone_number": "0900000000",
+      "email_verified": true,
+      "phone_verified": true,
+      "kyc_status": "APPROVED",
+      "is_admin": true,
+      "district": "Hai Bà Trưng",
+      "seed_password": "admin123"
+    },
+    {
+      "full_name": "Thảo Vy",
+      "school_email": "thao.vy@neu.edu.vn",
+      "phone_number": "0901111111",
+      "email_verified": true,
+      "phone_verified": true,
+      "kyc_status": "APPROVED",
+      "district": "Hai Bà Trưng",
+      "seed_password": "123456"
+    },
+    {
+      "full_name": "Hải Nam",
+      "school_email": "nam.hai@neu.edu.vn",
+      "phone_number": "0902222222",
+      "email_verified": true,
+      "phone_verified": true,
+      "kyc_status": "APPROVED",
+      "district": "Hai Bà Trưng",
+      "seed_password": "123456"
+    }
+  ],
+  "initial_listings": [
+    {
+      "title": "Sony A6400 kèm Kit 16-50 | Chụp ảnh, quay vlog sắc nét",
+      "description": "Máy cá nhân sử dụng cực kỹ, dây đủ phụ kiện (pin, sạc, thẻ nhớ 64GB).",
+      "category": "Máy ảnh & Thiết bị",
+      "district": "Hai Bà Trưng",
+      "price_per_day": 150000,
+      "deposit_amount": 500000,
+      "owner_email": "thao.vy@neu.edu.vn"
+    }
+  ],
+  "demo_accounts": [
+    {
+      "full_name": "Minh Anh",
+      "school_email": "demo.minhanh@neu.edu.vn",
+      "phone_number": "0910000001",
+      "district": "Hai Bà Trưng",
+      "seed_password": "123456"
+    },
+    {
+      "full_name": "Tuấn Kiệt",
+      "school_email": "demo.tuankiet@neu.edu.vn",
+      "phone_number": "0910000002",
+      "district": "Đống Đa",
+      "seed_password": "123456"
+    },
+    {
+      "full_name": "Ngọc Hà",
+      "school_email": "demo.ngocha@neu.edu.vn",
+      "phone_number": "0910000003",
+      "district": "Cầu Giấy",
+      "seed_password": "123456"
+    },
+    {
+      "full_name": "Đức Minh",
+      "school_email": "demo.ducminh@neu.edu.vn",
+      "phone_number": "0910000004",
+      "district": "Thanh Xuân",
+      "seed_password": "123456"
+    },
+    {
+      "full_name": "Khánh Linh",
+      "school_email": "demo.khanhlinh@neu.edu.vn",
+      "phone_number": "0910000005",
+      "district": "Ba Đình",
+      "seed_password": "123456"
+    },
+    {
+      "full_name": "Quang Huy",
+      "school_email": "demo.quanghuy@neu.edu.vn",
+      "phone_number": "0910000006",
+      "district": "Hoàn Kiếm",
+      "seed_password": "123456"
+    }
+  ],
+  "demo_listings": [
+    {
+      "title": "Canon EOS M50 Mark II kèm lens 15-45",
+      "description": "Máy hoạt động tốt, có pin, sạc, túi đựng và thẻ nhớ 64GB.",
+      "category": "Máy ảnh & Thiết bị",
+      "district": "Hai Bà Trưng",
+      "price_per_day": 180000,
+      "deposit_amount": 700000,
+      "image_key": "camera"
+    },
+    {
+      "title": "Sony ZV-E10 quay vlog, livestream",
+      "description": "Cho mượn kèm lens kit, pin dự phòng và tripod mini.",
+      "category": "Máy ảnh & Thiết bị",
+      "district": "Đống Đa",
+      "price_per_day": 220000,
+      "deposit_amount": 900000,
+      "image_key": "camera"
+    },
+    {
+      "title": "Fujifilm X-T30 chụp ảnh du lịch",
+      "description": "Màu ảnh đẹp, máy gọn nhẹ; hướng dẫn sử dụng cho người mới.",
+      "category": "Máy ảnh & Thiết bị",
+      "district": "Cầu Giấy",
+      "price_per_day": 200000,
+      "deposit_amount": 800000,
+      "image_key": "camera"
+    },
+    {
+      "title": "GoPro Hero 11 Black chống nước",
+      "description": "Có hộp chống nước, gậy selfie và 2 pin; hợp đi phượt.",
+      "category": "Máy ảnh & Thiết bị",
+      "district": "Thanh Xuân",
+      "price_per_day": 150000,
+      "deposit_amount": 600000,
+      "image_key": "camera"
+    },
+    {
+      "title": "Xe máy Honda Vision tiết kiệm xăng",
+      "description": "Xe giấy tờ đầy đủ, giao nhận gần trường; mũ bảo hiểm đi kèm.",
+      "category": "Xe cộ",
+      "district": "Hai Bà Trưng",
+      "price_per_day": 120000,
+      "deposit_amount": 1500000,
+      "image_key": "vehicle"
+    },
+    {
+      "title": "Xe đạp thể thao Giant Escape",
+      "description": "Xe vừa bảo dưỡng, khóa dây và đèn trước sau đầy đủ.",
+      "category": "Xe cộ",
+      "district": "Đống Đa",
+      "price_per_day": 50000,
+      "deposit_amount": 300000,
+      "image_key": "vehicle"
+    },
+    {
+      "title": "Xe đạp điện đi học pin khỏe",
+      "description": "Pin dùng tốt, sạc tại nhà; phù hợp đi học và quanh nội thành.",
+      "category": "Xe cộ",
+      "district": "Cầu Giấy",
+      "price_per_day": 80000,
+      "deposit_amount": 500000,
+      "image_key": "vehicle"
+    },
+    {
+      "title": "Xe máy điện VinFast Feliz",
+      "description": "Xe sạch đẹp, có sạc và 2 mũ bảo hiểm; thuê tối thiểu một ngày.",
+      "category": "Xe cộ",
+      "district": "Ba Đình",
+      "price_per_day": 150000,
+      "deposit_amount": 1800000,
+      "image_key": "vehicle"
+    },
+    {
+      "title": "Áo dài trắng nữ sinh kèm quần",
+      "description": "Đủ size S đến L, đã giặt sạch và là phẳng sau mỗi lượt thuê.",
+      "category": "Trang phục",
+      "district": "Hai Bà Trưng",
+      "price_per_day": 40000,
+      "deposit_amount": 200000,
+      "image_key": "clothes"
+    },
+    {
+      "title": "Vest nam màu đen đi phỏng vấn",
+      "description": "Có đủ size M, L, XL; kèm cà vạt cơ bản.",
+      "category": "Trang phục",
+      "district": "Đống Đa",
+      "price_per_day": 70000,
+      "deposit_amount": 300000,
+      "image_key": "clothes"
+    },
+    {
+      "title": "Váy dạ hội xanh navy dự tiệc",
+      "description": "Form dài thanh lịch, size S-M; vui lòng nhắn để xem số đo.",
+      "category": "Trang phục",
+      "district": "Cầu Giấy",
+      "price_per_day": 90000,
+      "deposit_amount": 400000,
+      "image_key": "clothes"
+    },
+    {
+      "title": "Áo khoác phao unisex mùa đông",
+      "description": "Áo còn mới, phù hợp các chuyến đi lạnh; size M và L.",
+      "category": "Trang phục",
+      "district": "Thanh Xuân",
+      "price_per_day": 50000,
+      "deposit_amount": 250000,
+      "image_key": "clothes"
+    },
+    {
+      "title": "Giáo trình Kinh tế vi mô NEU",
+      "description": "Sách sạch, không thiếu trang; ghi chú bằng bút chì có thể tẩy.",
+      "category": "Sách & Giáo trình",
+      "district": "Hai Bà Trưng",
+      "price_per_day": 10000,
+      "deposit_amount": 80000,
+      "image_key": "books"
+    },
+    {
+      "title": "Combo giáo trình Marketing căn bản",
+      "description": "Gồm giáo trình và tập câu hỏi ôn tập, cho thuê theo tuần.",
+      "category": "Sách & Giáo trình",
+      "district": "Đống Đa",
+      "price_per_day": 15000,
+      "deposit_amount": 100000,
+      "image_key": "books"
+    },
+    {
+      "title": "Giáo trình IELTS và bộ đề luyện thi",
+      "description": "Bộ sách đủ audio QR và đáp án, phù hợp tự học.",
+      "category": "Sách & Giáo trình",
+      "district": "Cầu Giấy",
+      "price_per_day": 20000,
+      "deposit_amount": 150000,
+      "image_key": "books"
+    },
+    {
+      "title": "Sách ôn thi TOEIC 2 kỹ năng",
+      "description": "Sách còn mới, có phần giải thích đáp án chi tiết.",
+      "category": "Sách & Giáo trình",
+      "district": "Ba Đình",
+      "price_per_day": 12000,
+      "deposit_amount": 90000,
+      "image_key": "books"
+    },
+    {
+      "title": "Loa kéo mini cho buổi sinh nhật",
+      "description": "Bluetooth, micro không dây và dây sạc; âm thanh rõ trong phòng.",
+      "category": "Phụ kiện sự kiện",
+      "district": "Hai Bà Trưng",
+      "price_per_day": 100000,
+      "deposit_amount": 500000,
+      "image_key": "event"
+    },
+    {
+      "title": "Máy chiếu mini kèm màn chiếu",
+      "description": "HDMI và cáp kết nối laptop, phù hợp thuyết trình nhóm.",
+      "category": "Phụ kiện sự kiện",
+      "district": "Đống Đa",
+      "price_per_day": 120000,
+      "deposit_amount": 600000,
+      "image_key": "event"
+    },
+    {
+      "title": "Tripod điện thoại quay video",
+      "description": "Chân máy cao 1,6m, có remote bluetooth chụp từ xa.",
+      "category": "Phụ kiện sự kiện",
+      "district": "Cầu Giấy",
+      "price_per_day": 30000,
+      "deposit_amount": 150000,
+      "image_key": "event"
+    },
+    {
+      "title": "Đèn ring light livestream 26cm",
+      "description": "Ba chế độ màu, chỉnh sáng; kèm giá đỡ điện thoại.",
+      "category": "Phụ kiện sự kiện",
+      "district": "Thanh Xuân",
+      "price_per_day": 35000,
+      "deposit_amount": 180000,
+      "image_key": "event"
+    },
+    {
+      "title": "Vợt cầu lông Yonex kèm bao",
+      "description": "Một đôi vợt nhẹ, căng dây tốt; có thể thuê từng chiếc.",
+      "category": "Dụng cụ thể thao",
+      "district": "Hai Bà Trưng",
+      "price_per_day": 40000,
+      "deposit_amount": 250000,
+      "image_key": "sport"
+    },
+    {
+      "title": "Bộ vợt pickleball cho người mới",
+      "description": "Hai vợt, bóng và túi đựng; phù hợp chơi cuối tuần.",
+      "category": "Dụng cụ thể thao",
+      "district": "Đống Đa",
+      "price_per_day": 70000,
+      "deposit_amount": 350000,
+      "image_key": "sport"
+    },
+    {
+      "title": "Thảm yoga và gạch tập yoga",
+      "description": "Thảm dày 6mm, đã vệ sinh; kèm hai gạch hỗ trợ tập.",
+      "category": "Dụng cụ thể thao",
+      "district": "Cầu Giấy",
+      "price_per_day": 25000,
+      "deposit_amount": 120000,
+      "image_key": "sport"
+    },
+    {
+      "title": "Bóng đá size 5 và bơm mini",
+      "description": "Bóng phù hợp sân cỏ nhân tạo, có bơm tay đi kèm.",
+      "category": "Dụng cụ thể thao",
+      "district": "Ba Đình",
+      "price_per_day": 30000,
+      "deposit_amount": 150000,
+      "image_key": "sport"
+    },
+    {
+      "title": "Nồi chiên không dầu 5 lít",
+      "description": "Nồi hoạt động ổn định, đã vệ sinh kỹ; phù hợp nấu nhóm.",
+      "category": "Đồ gia dụng & Khác",
+      "district": "Hai Bà Trưng",
+      "price_per_day": 60000,
+      "deposit_amount": 400000,
+      "image_key": "home"
+    },
+    {
+      "title": "Máy lọc không khí phòng trọ",
+      "description": "Máy nhỏ gọn, lọc bụi tốt; có thể thuê theo tuần hoặc tháng.",
+      "category": "Đồ gia dụng & Khác",
+      "district": "Đống Đa",
+      "price_per_day": 80000,
+      "deposit_amount": 600000,
+      "image_key": "home"
+    },
+    {
+      "title": "Bàn gấp học tập kèm ghế",
+      "description": "Bàn gỗ gấp gọn, tiện cho phòng trọ và học nhóm.",
+      "category": "Đồ gia dụng & Khác",
+      "district": "Cầu Giấy",
+      "price_per_day": 30000,
+      "deposit_amount": 200000,
+      "image_key": "home"
+    },
+    {
+      "title": "Quạt tích điện mini để bàn",
+      "description": "Quạt 3 mức gió, pin dùng nhiều giờ; sạc USB-C.",
+      "category": "Đồ gia dụng & Khác",
+      "district": "Thanh Xuân",
+      "price_per_day": 20000,
+      "deposit_amount": 100000,
+      "image_key": "home"
+    }
+  ]
+}

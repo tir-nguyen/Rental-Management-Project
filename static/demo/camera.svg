@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+<defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#d9f4ee"/><stop offset="1" stop-color="#eff4ff"/></linearGradient></defs>
+<rect width="800" height="500" fill="url(#g)"/><circle cx="660" cy="100" r="130" fill="#fff" opacity=".45"/>
+<rect x="255" y="155" width="290" height="195" rx="28" fill="#168d7e"/><rect x="290" y="130" width="90" height="35" rx="12" fill="#168d7e"/>
+<circle cx="400" cy="252" r="76" fill="#d8fff4"/><circle cx="400" cy="252" r="52" fill="#364b68"/><circle cx="400" cy="252" r="28" fill="#9de7d6"/>
+<text x="400" y="420" text-anchor="middle" font-family="Arial,sans-serif" font-size="27" font-weight="700" fill="#315d59">MÁY ẢNH &amp; THIẾT BỊ</text></svg>

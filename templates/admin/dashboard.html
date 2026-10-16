@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+
+  <h1>Admin Dashboard</h1>
+
+  <div class="section">
+    <h2>Duyệt KYC ({{ pending_kyc|length }})</h2>
+    {% if pending_kyc %}
+      {% for u in pending_kyc %}
+      <div class="booking-card">
+        <div class="top">
+          <b>{{ u.full_name }}</b>
+          <span class="muted">{{ u.school_email }}</span>
+        </div>
+        {% if u.kyc_card_image %}
+        <img class="admin-kyc-image" src="{{ url_for('static', filename=u.kyc_card_image) }}" alt="Thẻ sinh viên của {{ u.full_name }}">
+        {% endif %}
+        <form method="post" action="{{ url_for('admin_resolve_kyc', user_id=u.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <div class="btn-row">
+            <button class="btn ghost" name="decision" value="reject">Từ chối</button>
+            <button class="btn" name="decision" value="approve">Duyệt</button>
+          </div>
+        </form>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">Không có hồ sơ KYC chờ duyệt.</p>
+    {% endif %}
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <h2>Tranh chấp đang mở ({{ disputes|length }})</h2>
+    {% if disputes %}
+      {% for d in disputes %}
+      <div class="booking-card">
+        <div class="top">
+          <b>Đơn #{{ '%04d'|format(d.booking.id) }}</b>
+          <span class="muted">{{ d.booking.listing.title }}</span>
+        </div>
+        <p class="dispute-reason">Lý do: {{ d.reason }}</p>
+        <h3>Bằng chứng giao nhận</h3>
+        {% for evidence in d.booking.evidences %}
+          <div class="note-box">
+            <b>{{ evidence.type }}</b> · {{ evidence.note or '' }}
+            {% if evidence.media_url %}
+              {% if evidence.media_url.lower().endswith(('.mp4', '.mov', '.webm')) %}
+                <video class="evidence-media evidence-video" controls>
+                  <source src="{{ url_for('static', filename=evidence.media_url) }}">
+                </video>
+              {% else %}
+                <img class="evidence-media evidence-image" src="{{ url_for('static', filename=evidence.media_url) }}" alt="Bằng chứng {{ evidence.type }}">
+              {% endif %}
+            {% endif %}
+          </div>
+        {% else %}
+          <p class="muted">Chưa có bằng chứng giao nhận.</p>
+        {% endfor %}
+        <h3>Lịch sử chat</h3>
+        <div class="chat-box">
+          {% for message in d.booking.messages %}
+            <div class="msg theirs"><b>{{ message.sender.full_name }}:</b> {{ message.content }}</div>
+          {% else %}
+            <p class="muted">Chưa có tin nhắn.</p>
+          {% endfor %}
+        </div>
+        <p class="muted admin-muted">
+          Renter: {{ d.booking.renter.full_name }} (TS {{ d.booking.renter.trust_score }}) ·
+          Lender: {{ d.booking.lender.full_name }} (TS {{ d.booking.lender.trust_score }})
+        </p>
+        <form method="post" action="{{ url_for('admin_resolve_dispute', dispute_id=d.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <div class="field">
+            <label>Quyết định</label>
+            <select name="resolution">
+              <option value="FULL_REFUND">Hoàn 100% cho Renter</option>
+              <option value="LENDER_COMPENSATION">Trích cọc đền Lender</option>
+              <option value="SPLIT">Chia đôi tiền cọc</option>
+            </select>
+          </div>
+          <div class="field">
+            <textarea name="note" placeholder="Ghi chú quyết định..."></textarea>
+          </div>
+          <button class="btn" type="submit">Xử Lý Tranh Chấp</button>
+        </form>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">Không có tranh chấp nào đang mở.</p>
+    {% endif %}
+  </div>
+
+{% endblock %}

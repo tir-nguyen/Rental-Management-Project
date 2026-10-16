@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Hợp đồng thuê đồ{% endblock %}
+{% block content %}
+
+  <h1>Hợp đồng thuê đồ</h1>
+
+  <div class="tab-row">
+    <a class="{{ 'active' if tab=='thue' else '' }}" href="{{ url_for('booking_list', tab='thue') }}">Đang đi thuê</a>
+    <a class="{{ 'active' if tab=='cho' else '' }}" href="{{ url_for('booking_list', tab='cho') }}">Cho thuê</a>
+  </div>
+
+  {% if bookings %}
+    <div class="booking-list-grid">
+    {% for b in bookings %}
+    <a class="booking-card booking-list-card" href="{{ url_for('booking_detail', booking_id=b.id) }}">
+      <div class="top">
+        <span class="code">Mã HĐ #{{ '%04d'|format(b.id) }}</span>
+        <span class="status-pill st-{{ b.status }}">{{ b.status }}</span>
+      </div>
+      <div class="booking-card-title">{{ b.listing.title }}</div>
+      <div class="muted booking-card-meta">
+        {{ b.start_date.strftime('%d/%m') }} – {{ b.end_date.strftime('%d/%m') }}
+        · {{ "{:,}".format(b.total_rent_amount) }}đ
+      </div>
+    </a>
+    {% endfor %}
+    </div>
+  {% else %}
+  <div class="empty-state">Chưa có hợp đồng nào ở mục này.</div>
+  {% endif %}
+
+{% endblock %}

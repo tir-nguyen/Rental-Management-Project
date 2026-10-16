@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Đơn #{{ booking.id }}{% endblock %}
+{% block content %}
+{% set is_lender = current_user.id == booking.lender_id %}
+{% set is_renter = current_user.id == booking.renter_id %}
+{% set partner = booking.lender if is_renter else booking.renter %}
+{% set progress = {"PENDING": 0, "APPROVED": 1, "DEPOSIT_WAITING": 1, "READY_FOR_PICKUP": 2, "IN_USE": 3, "RETURN_PENDING": 4, "COMPLETED": 5, "DISPUTED": 4} %}
+{% set current_step = progress.get(booking.status, -1) %}
+
+<div class="booking-detail-page">
+  <div class="booking-detail-heading">
+    <h1>Đơn #{{ '%04d'|format(booking.id) }}</h1>
+    <span class="status-pill st-{{ booking.status }}">{{ booking.status }}</span>
+  </div>
+  <p class="muted booking-detail-subtitle">{{ booking.listing.title }}</p>
+
+  <div class="booking-progress" aria-label="Tiến trình hợp đồng">
+    {% for step in ['Yêu cầu thuê', 'Xác nhận & cọc', 'Bàn giao', 'Đang sử dụng', 'Trả đồ', 'Hoàn tất'] %}
+    <div class="progress-step {{ 'done' if loop.index0 < current_step else ('current' if loop.index0 == current_step else '') }}"><span>{{ '✓' if loop.index0 < current_step else loop.index }}</span><small>{{ step }}</small></div>
+    {% endfor %}
+  </div>
+
+  <div class="booking-layout">
+  <section class="booking-main">
+    <div class="booking-product">
+      <div class="booking-product-img">{% if booking.listing.cover_image %}<img src="{{ url_for('static', filename=booking.listing.cover_image) }}" alt="{{ booking.listing.title }}">{% endif %}</div>
+      <div><span class="eyebrow">CHI TIẾT MÓN ĐỒ</span><h2>{{ booking.listing.title }}</h2><p class="muted">{{ booking.listing.district }} · {{ booking.listing.category }}</p></div>
+    </div>
+  <div class="kv-grid">
+    <div class="kv"><div class="k">Thời gian thuê</div><div class="v">{{ booking.start_date.strftime('%d/%m') }} - {{ booking.end_date.strftime('%d/%m') }}</div></div>
+    <div class="kv"><div class="k">Tổng tiền</div><div class="v">{{ "{:,}".format(booking.total_rent_amount) }}đ</div></div>
+    <div class="kv"><div class="k">Tiền cọc</div><div class="v">{{ "{:,}".format(booking.deposit_amount) }}đ</div></div>
+    <div class="kv"><div class="k">{{ 'Người cho thuê' if is_renter else 'Người thuê' }}</div><div class="v">{{ partner.full_name }}</div></div>
+    <div class="kv"><div class="k">Trust Score</div><div class="v">{{ partner.trust_score }}</div></div>
+  </div>
+
+  {% if booking.meetup_note %}
+  <div class="note-box">Ghi chú hẹn gặp: {{ booking.meetup_note }}</div>
+  {% endif %}
+  </section>
+
+  <aside class="booking-side">
+
+  {# ---------------- ACTIONS BY STATE ---------------- #}
+  <div class="section">
+    <h2>Hành động</h2>
+
+    {% if booking.status == "PENDING" and is_lender %}
+      <form method="post" action="{{ url_for('respond_booking', booking_id=booking.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="btn-row">
+          <button class="btn secondary" name="decision" value="reject">Từ Chối</button>
+          <button class="btn" name="decision" value="approve">Chấp Nhận</button>
+        </div>
+      </form>
+
+    {% elif booking.status == "PENDING" and is_renter %}
+      <p class="muted">Đang chờ người cho thuê phản hồi trong vòng 24 giờ.</p>
+      <form method="post" action="{{ url_for('cancel_booking', booking_id=booking.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn ghost" type="submit">Hủy Yêu Cầu</button>
+      </form>
+
+    {% elif booking.status in ("APPROVED", "DEPOSIT_WAITING") and is_renter %}
+      <p class="muted">Thanh toán trong vòng 2-4 giờ để giữ chỗ (qua VNPAY — demo tự động thành công).</p>
+      <form method="post" action="{{ url_for('pay_deposit', booking_id=booking.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn" type="submit">Thanh Toán {{ "{:,}".format(booking.total_rent_amount + booking.deposit_amount) }}đ</button>
+      </form>
+
+    {% elif booking.status in ("APPROVED", "DEPOSIT_WAITING") and is_lender %}
+      <p class="muted">Đang chờ người thuê đặt cọc.</p>
+
+    {% elif booking.status == "READY_FOR_PICKUP" %}
+      <p class="muted">Hẹn gặp trực tiếp để bàn giao đồ. Mỗi bên xác nhận bằng ảnh khi gặp mặt.</p>
+      <form method="post" action="{{ url_for('checkin', booking_id=booking.id) }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <label>Ảnh tình trạng đồ lúc giao</label>
+          <input type="file" name="media" accept="image/*,video/mp4,video/quicktime,video/webm" multiple required>
+          <small>Chọn từ 4 đến 6 ảnh/video.</small>
+        </div>
+        <div class="field">
+          <label>Ghi chú</label>
+          <input type="text" name="note" placeholder="Đồ còn mới 95%...">
+        </div>
+        <button class="btn" type="submit">Xác Nhận Đã Bàn Giao</button>
+      </form>
+
+    {% elif booking.status == "IN_USE" %}
+      {% if is_renter %}
+      <form method="post" action="{{ url_for('checkout', booking_id=booking.id) }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <label>Ảnh tình trạng đồ lúc trả</label>
+          <input type="file" name="media" accept="image/*,video/mp4,video/quicktime,video/webm" multiple required>
+          <small>Chọn từ 4 đến 6 ảnh/video.</small>
+        </div>
+        <div class="field">
+          <label>Ghi chú</label>
+          <input type="text" name="note" placeholder="Trả đúng hạn, đồ nguyên vẹn...">
+        </div>
+        <button class="btn" type="submit">Bắt Đầu Trả Đồ</button>
+      </form>
+      {% else %}
+      <p class="muted">Renter đang sử dụng đồ, hạn trả {{ booking.end_date.strftime('%d/%m/%Y') }}.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('open_dispute', booking_id=booking.id) }}" class="form-spaced" data-confirm="Mở tranh chấp cho đơn này?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="reason" value="Vấn đề phát sinh trong quá trình sử dụng">
+        <button class="btn ghost" type="submit">Báo Cáo Vấn Đề</button>
+      </form>
+
+    {% elif booking.status == "RETURN_PENDING" and is_lender %}
+      <p class="muted">Kiểm tra đồ khi Renter trả. Nếu ổn, xác nhận hoàn tất; nếu có vấn đề, mở tranh chấp.</p>
+      <div class="btn-row">
+        <form method="post" action="{{ url_for('open_dispute', booking_id=booking.id) }}" class="form-flex" data-confirm="Mở tranh chấp cho đơn này?">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="reason" value="Đồ không đúng tình trạng ban đầu / trả trễ">
+          <button class="btn ghost" type="submit">Báo Cáo Vấn Đề</button>
+        </form>
+        <form method="post" action="{{ url_for('complete_booking', booking_id=booking.id) }}" class="form-flex">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn" type="submit">Xác Nhận Đồ Nguyên Vẹn</button>
+        </form>
+      </div>
+
+    {% elif booking.status == "RETURN_PENDING" and is_renter %}
+      <p class="muted">Đang chờ người cho thuê kiểm tra và xác nhận đồ.</p>
+
+    {% elif booking.status == "COMPLETED" %}
+      {% if not already_reviewed %}
+      <form method="post" action="{{ url_for('submit_review', booking_id=booking.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <label>Đánh giá {{ partner.full_name }}</label>
+          <div class="star-row">
+            {% for i in [5,4,3,2,1] %}
+            <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" {{ 'checked' if i==5 else '' }}>
+            <label for="star{{ i }}">★</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="field">
+          <textarea name="comment" placeholder="Trải nghiệm thuê/cho thuê thế nào?"></textarea>
+        </div>
+        <button class="btn" type="submit">Gửi Đánh Giá</button>
+      </form>
+      {% else %}
+      <p class="muted">Bạn đã đánh giá đơn hàng này. Cảm ơn bạn!</p>
+      {% endif %}
+
+    {% elif booking.status == "DISPUTED" %}
+      <p class="muted">Đơn đang được Admin xem xét tranh chấp. Bạn sẽ nhận thông báo khi có kết quả.</p>
+
+    {% elif booking.status in ("REJECTED", "CANCELLED", "EXPIRED") %}
+      <p class="muted">Đơn hàng đã kết thúc ở trạng thái {{ booking.status }}.</p>
+    {% endif %}
+  </div>
+
+  <div class="divider"></div>
+
+  {# ---------------- CHAT ---------------- #}
+  <div class="section">
+    <h2>Trò chuyện</h2>
+    <div class="chat-box">
+      {% for m in booking.messages %}
+        <div class="msg {{ 'mine' if m.sender_id==current_user.id else 'theirs' }}">{{ m.content }}</div>
+      {% else %}
+        <p class="muted chat-empty">Chưa có tin nhắn nào. Hãy thương lượng thời gian/địa điểm giao nhận!</p>
+      {% endfor %}
+    </div>
+    <form class="chat-input-row" method="post" action="{{ url_for('send_message', booking_id=booking.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="text" name="content" placeholder="Nhắn tin..." required>
+      <button type="submit">Gửi</button>
+    </form>
+  </div>
+  </aside>
+  </div>
+</div>
+
+{% endblock %}

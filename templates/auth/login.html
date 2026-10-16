@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Đăng nhập{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Đăng nhập</h1>
+
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field">
+      <label>Email</label>
+      <input type="email" name="school_email" required>
+    </div>
+    <div class="field">
+      <label>Mật khẩu</label>
+      <div class="password-input-wrap">
+        <input id="login-password" type="password" name="password" required>
+        <button class="password-toggle" type="button" data-password-toggle="login-password" aria-label="Hiện mật khẩu" aria-pressed="false">Hiện</button>
+      </div>
+    </div>
+    <button class="btn" type="submit">Đăng Nhập</button>
+  </form>
+
+  <p class="muted auth-secondary">
+    Chưa có tài khoản? <a class="auth-link" href="{{ url_for('register') }}">Đăng ký</a>
+  </p>
+  <p class="muted auth-demo">
+  </p>
+</div>
+{% endblock %}

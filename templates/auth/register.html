@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Đăng ký{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Tạo tài khoản sinh viên</h1>
+  <p class="muted auth-intro">Dùng email của bạn để tạo tài khoản cho thuê và đi thuê.</p>
+
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field">
+      <label>Họ và tên</label>
+      <input type="text" name="full_name" required placeholder="Nguyễn Văn A">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" name="school_email" required placeholder="name@gmail.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Số điện thoại</label>
+      <input type="tel" name="phone_number" required placeholder="0900 123 456">
+    </div>
+    <div class="field">
+      <label>Quận / huyện</label>
+      <select name="district">
+        {% for d in districts %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Mật khẩu</label>
+      <div class="password-input-wrap">
+        <input id="register-password" type="password" name="password" required minlength="6">
+        <button class="password-toggle" type="button" data-password-toggle="register-password" aria-label="Hiện mật khẩu" aria-pressed="false">Hiện</button>
+      </div>
+    </div>
+    <button class="btn" type="submit">Đăng Ký</button>
+  </form>
+
+  <p class="muted auth-secondary">
+    Đã có tài khoản? <a class="auth-link" href="{{ url_for('login') }}">Đăng nhập</a>
+  </p>
+</div>
+{% endblock %}
