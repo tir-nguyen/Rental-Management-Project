@@ -16,7 +16,7 @@
         {% if u.kyc_card_image %}
         <img class="admin-kyc-image" src="{{ url_for('static', filename=u.kyc_card_image) }}" alt="Thẻ sinh viên của {{ u.full_name }}">
         {% endif %}
-        <form method="post" action="{{ url_for('admin_resolve_kyc', user_id=u.id) }}">
+        <form method="post" action="{{ url_for('admin.admin_resolve_kyc', user_id=u.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <div class="btn-row">
             <button class="btn ghost" name="decision" value="reject">Từ chối</button>
@@ -71,7 +71,7 @@
           Renter: {{ d.booking.renter.full_name }} (TS {{ d.booking.renter.trust_score }}) ·
           Lender: {{ d.booking.lender.full_name }} (TS {{ d.booking.lender.trust_score }})
         </p>
-        <form method="post" action="{{ url_for('admin_resolve_dispute', dispute_id=d.id) }}">
+        <form method="post" action="{{ url_for('admin.admin_resolve_dispute', dispute_id=d.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <div class="field">
             <label>Quyết định</label>

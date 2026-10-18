@@ -2,31 +2,31 @@
 {% block title %}Tin của tôi{% endblock %}
 {% block content %}
 
-  <div class="page-heading-row"><div><span class="eyebrow">BẢNG ĐIỀU KHIỂN NGƯỜI CHO THUÊ</span><h1>Tin của tôi</h1><p class="muted">Quản lý trạng thái và lịch cho thuê các món đồ.</p></div><a class="btn my-listing-add" href="{{ url_for('create_listing') }}">＋ Đăng tin mới</a></div>
+  <div class="page-heading-row"><div><span class="eyebrow">BẢNG ĐIỀU KHIỂN NGƯỜI CHO THUÊ</span><h1>Tin của tôi</h1><p class="muted">Quản lý trạng thái và lịch cho thuê các món đồ.</p></div><a class="btn my-listing-add" href="{{ url_for('listings.create_listing') }}">＋ Đăng tin mới</a></div>
 
   {% if listings %}
   <div class="my-listing-grid">
     {% for l in listings %}
     <article class="my-listing-item">
-      <a class="card" href="{{ url_for('listing_detail', listing_id=l.id) }}">
+      <a class="card" href="{{ url_for('listings.listing_detail', listing_id=l.id) }}">
         <div class="card-img">
           {% if l.cover_image %}<img src="{{ url_for('static', filename=l.cover_image) }}" alt="{{ l.title }}">{% else %}<span>Chưa có ảnh</span>{% endif %}
         </div>
         <div class="card-body"><div class="card-title">{{ l.title }}</div><div class="card-price">{{ "{:,}".format(l.price_per_day) }}đ <small>/ ngày</small></div><span class="badge badge-owner">{{ l.status }}</span></div>
       </a>
       <div class="my-listing-tools">
-      <form method="post" action="{{ url_for('toggle_listing_visibility', listing_id=l.id) }}">
+      <form method="post" action="{{ url_for('listings.toggle_listing_visibility', listing_id=l.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button class="btn secondary" type="submit">{{ 'Hiện tin' if l.status == 'HIDDEN' else 'Ẩn tin' }}</button>
       </form>
-      <form method="post" action="{{ url_for('block_listing_dates', listing_id=l.id) }}" class="field-row listing-block-form">
+      <form method="post" action="{{ url_for('listings.block_listing_dates', listing_id=l.id) }}" class="field-row listing-block-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="field"><label>Khóa từ</label><input type="date" name="start_date" required></div>
         <div class="field"><label>Đến ngày</label><input type="date" name="end_date" required></div>
         <button class="btn" type="submit">Khóa lịch</button>
       </form>
       {% for block in l.blocks if block.reason == 'LENDER_BLOCKED' %}
-      <form method="post" action="{{ url_for('remove_listing_block', block_id=block.id) }}" class="blocked-date">
+      <form method="post" action="{{ url_for('listings.remove_listing_block', block_id=block.id) }}" class="blocked-date">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         Đã khóa {{ block.start_date.strftime('%d/%m/%Y') }}–{{ block.end_date.strftime('%d/%m/%Y') }}
         <button class="btn ghost" type="submit">Bỏ khóa</button>
@@ -37,7 +37,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty-state">Bạn chưa đăng tin nào. <br><a class="btn empty-state-action" href="{{ url_for('create_listing') }}">Đăng tin đầu tiên</a></div>
+  <div class="empty-state">Bạn chưa đăng tin nào. <br><a class="btn empty-state-action" href="{{ url_for('listings.create_listing') }}">Đăng tin đầu tiên</a></div>
   {% endif %}
 
 {% endblock %}

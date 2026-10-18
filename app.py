@@ -4,19 +4,27 @@ import secrets
 
 from flask import Flask, abort, request, session
 from flask_login import LoginManager, current_user
+from dotenv import load_dotenv
 from sqlalchemy import inspect, text
 
 from models import db, User, Booking, AvailabilityBlock
 from services import booking_service, notification_service, seed_service
-from routes import register_routes
+from routes import register_blueprints
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or os.urandom(32)
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(BASE_DIR, 'rental.db')}"
 app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "static", "uploads")
 app.config["MAX_CONTENT_LENGTH"] = 40 * 1024 * 1024
+app.config["VNPAY_TMN_CODE"] = os.environ.get("VNPAY_TMN_CODE", "")
+app.config["VNPAY_HASH_SECRET"] = os.environ.get("VNPAY_HASH_SECRET", "")
+app.config["VNPAY_PAYMENT_URL"] = os.environ.get(
+    "VNPAY_PAYMENT_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+)
+app.config["VNPAY_RETURN_URL"] = os.environ.get("VNPAY_RETURN_URL", "")
 
 db.init_app(app)
 _schema_ready = False
@@ -63,7 +71,7 @@ def prepare_database_and_expire_bookings():
 
 
 login_manager = LoginManager()
-login_manager.login_view = "login"
+login_manager.login_view = "auth.login"
 login_manager.login_message = "Vui lòng đăng nhập để tiếp tục."
 login_manager.init_app(app)
 
@@ -84,7 +92,7 @@ def inject_unread_notification_count():
     return {"unread_notification_count": 0, "csrf_token": token}
 
 
-register_routes(app)
+register_blueprints(app)
 
 
 @app.cli.command("init-db")

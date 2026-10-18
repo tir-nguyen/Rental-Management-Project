@@ -39,49 +39,66 @@ thật cùng mạng Wi-Fi (dùng IP máy tính, VD http://192.168.x.x:5000).
 
 ```
 rentalweb/
-├── app.py                  # Khởi tạo Flask, middleware, schema và CLI commands
-├── models.py                # SQLAlchemy models (theo ERD đã thiết kế)
-├── routes/                  # HTTP handlers theo nhóm auth, listing, booking, admin
-│   ├── auth_routes.py
-│   ├── listing_routes.py
-│   ├── booking_routes.py
-│   └── admin_routes.py
-├── services/                # Nghiệp vụ auth, listing, booking, review, admin, notification, seed
+├── .gitignore                 # Bỏ qua môi trường, cache, database và file upload cục bộ
+├── .env.example               # Mẫu tên biến VNPay; không chứa thông tin thật
+├── app.py                     # Khởi tạo Flask, middleware, schema và CLI commands
+├── models.py                  # SQLAlchemy models (theo ERD đã thiết kế)
+├── ptnv.pdf                   # Tài liệu PDF của dự án
+├── routes/                    # Flask Blueprints, chia theo nhóm chức năng
+│   ├── __init__.py
+│   ├── auth_routes.py         # Blueprint auth
+│   ├── listing_routes.py      # Blueprint listings
+│   ├── booking_routes.py      # Blueprint bookings
+│   ├── admin_routes.py        # Blueprint admin
+│   └── payment_routes.py      # Blueprint payments: tạo yêu cầu, Return, IPN VNPay
+├── services/                  # Xử lý nghiệp vụ, tách khỏi HTTP handlers
+│   ├── __init__.py
+│   ├── admin_service.py
+│   ├── auth_service.py
+│   ├── booking_service.py
+│   ├── listing_service.py
+│   ├── notification_service.py
+│   ├── payment_service.py     # Tạo URL VNPay và xác minh Return/IPN
+│   ├── review_service.py
+│   ├── seed_service.py
+│   └── upload_service.py
 ├── data/
-│   └── seed_data.json        # Tài khoản và tin đăng dùng cho database demo
+│   └── seed_data.json         # Tài khoản và tin đăng dùng cho database demo
 ├── requirements.txt
-├── rental.db                 # SQLite database (tự tạo sau khi init-db)
 ├── templates/
-│   ├── base.html             # Khung chung: top bar + bottom nav
+│   ├── base.html              # Khung chung: top bar + bottom nav
 │   ├── index.html             # Khám phá / tìm kiếm / lọc
-│   ├── listing_detail.html     # Chi tiết sản phẩm + form gửi yêu cầu thuê
-│   ├── listing_form.html        # Đăng tin cho thuê
-│   ├── my_listings.html          # Tin của tôi
+│   ├── listing_detail.html    # Chi tiết sản phẩm + form gửi yêu cầu thuê
+│   ├── listing_form.html      # Đăng tin cho thuê
+│   ├── my_listings.html       # Tin của tôi
+│   ├── notifications.html     # Danh sách thông báo
 │   ├── auth/
 │   │   ├── register.html
 │   │   ├── login.html
-│   │   └── verify.html          # Xác minh OTP + upload thẻ SV (KYC)
+│   │   └── verify.html        # Xác minh OTP + upload thẻ SV (KYC)
 │   ├── bookings/
-│   │   ├── list.html              # Danh sách hợp đồng (tab Đi thuê / Cho thuê)
-│   │   └── detail.html             # Trang trung tâm: trạng thái, hành động theo
-│   │                                 từng bước (duyệt, cọc, bàn giao, trả đồ,
-│   │                                 hoàn tất, tranh chấp), chat, đánh giá
+│   │   ├── list.html          # Danh sách hợp đồng (tab Đi thuê / Cho thuê)
+│   │   └── detail.html        # Trạng thái, hành động, chat và đánh giá
 │   └── admin/
-│       └── dashboard.html          # Duyệt KYC + xử lý tranh chấp
+│       └── dashboard.html     # Duyệt KYC + xử lý tranh chấp
 └── static/
-    ├── css/style.css          # Toàn bộ style mobile-first
-    ├── js/app.js              # Tương tác dùng chung
+    ├── css/style.css           # Toàn bộ style mobile-first
     ├── demo/                   # Ảnh minh họa cho tin demo
-    └── uploads/                 # Ảnh người dùng tải lên
+    ├── js/app.js               # Tương tác dùng chung
+    └── uploads/                # File người dùng tải lên; không đưa lên Git
 ```
+
+Database `rental.db` được tạo cục bộ khi chạy `init-db` và không được theo dõi
+bởi Git. Thư mục `static/uploads/` cũng được tạo khi cần lưu file tải lên; các
+file bên trong không được đưa lên Git.
 
 ## Đã triển khai theo đúng phân tích nghiệp vụ trước đó
 
 - **Booking state machine đầy đủ**: PENDING → APPROVED/REJECTED/EXPIRED →
   DEPOSIT_WAITING → READY_FOR_PICKUP → IN_USE → RETURN_PENDING → COMPLETED,
   cộng DISPUTED và CANCELLED.
-- **Escrow mô phỏng**: nút "Thanh Toán" demo luôn thành công (thay cho tích hợp
-  VNPAY thật — xem phần "Việc cần làm thêm" bên dưới).
+- **Thanh toán VNPay sandbox**: thanh toán tiền thuê + tiền cọc qua VNPay;
+  đơn chỉ sẵn sàng bàn giao sau khi backend xác thực IPN.
 - **Handover có bằng chứng**: check-in/check-out yêu cầu 4-6 ảnh/video + ghi chú, xác nhận
   2 chiều mới chuyển trạng thái.
 - **Reputation system**: điểm bắt đầu 100, +điểm khi hoàn tất/5 sao, -điểm khi
@@ -95,9 +112,44 @@ rentalweb/
 - **Giao nhận trực tiếp**: không có logic vận chuyển — chỉ có ô ghi chú hẹn gặp
   và khung chat để 2 bên tự thỏa thuận địa điểm.
 
-## Việc cần làm thêm trước khi triển khai thật (ngoài phạm vi đồ án demo)
+## Cấu hình VNPay sandbox khi chạy local
 
-1. Tích hợp cổng thanh toán VNPAY thật (hiện đang mô phỏng luôn thành công)
+Tạo file `.env` ở thư mục gốc dự án bằng cách sao chép mẫu:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Mở `.env` và tự điền `VNPAY_TMN_CODE` cùng `VNPAY_HASH_SECRET` do VNPay cấp.
+Không gửi các giá trị này trong chat, không đưa vào mã nguồn và không commit
+`.env`; file đã được loại trừ trong `.gitignore`. Ứng dụng nạp file `.env` lúc
+khởi động, trước khi đọc cấu hình. Có thể đặt `VNPAY_PAYMENT_URL` và
+`VNPAY_RETURN_URL` như biến môi trường riêng nếu cần ghi đè giá trị mặc định/
+URL Return.
+
+Để nhận kết quả quay về/IPN thực tế, VNPay cần truy cập được URL công khai. Chạy
+một HTTPS tunnel trỏ tới cổng 5000, sau đó cấu hình:
+
+```powershell
+$env:VNPAY_RETURN_URL = "https://<host-cong-khai>/thanh-toan/vnpay/return"
+```
+
+Đăng ký IPN URL `https://<host-cong-khai>/thanh-toan/vnpay/ipn` trong cấu hình
+merchant sandbox của VNPay. Return URL chỉ hiển thị trạng thái; IPN có chữ ký hợp
+lệ mới cập nhật thanh toán. Nếu không có tunnel, có thể kiểm tra tạo URL và xác
+minh callback giả lập bằng test, nhưng VNPay không thể gửi IPN tới `localhost`.
+Nếu tiền về sau khi đơn đã bị hủy/hết hạn, giao dịch được đánh dấu cần kiểm tra;
+ứng dụng hiện chưa tự động gọi API hoàn tiền.
+
+Khởi động app trong cùng PowerShell để các biến môi trường được áp dụng:
+
+```powershell
+.venv\Scripts\python.exe app.py
+```
+
+## Việc cần làm thêm trước khi triển khai thật
+
+1. Hoàn tất kiểm thử sandbox, sau đó đăng ký và cấu hình bộ thông tin VNPay production riêng.
 2. Gửi OTP/email thật (hiện đang hiển thị mã ngay trên giao diện demo)
 3. Ràng buộc email theo domain chính xác của từng trường (hiện chỉ kiểm tra đuôi `.edu.vn`)
 4. Lên lịch chạy `flask --app app.py expire-bookings` định kỳ bằng Windows Task Scheduler/cron;

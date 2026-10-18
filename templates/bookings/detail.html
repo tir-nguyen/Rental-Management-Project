@@ -12,6 +12,9 @@
     <h1>Đơn #{{ '%04d'|format(booking.id) }}</h1>
     <span class="status-pill st-{{ booking.status }}">{{ booking.status }}</span>
   </div>
+  {% if latest_payment and latest_payment.status == "PAID_REVIEW" %}
+  <div class="flash flash-error">Đã nhận thanh toán nhưng đơn cần được kiểm tra và xử lý thủ công. Vui lòng liên hệ hỗ trợ.</div>
+  {% endif %}
   <p class="muted booking-detail-subtitle">{{ booking.listing.title }}</p>
 
   <div class="booking-progress" aria-label="Tiến trình hợp đồng">
@@ -46,7 +49,7 @@
     <h2>Hành động</h2>
 
     {% if booking.status == "PENDING" and is_lender %}
-      <form method="post" action="{{ url_for('respond_booking', booking_id=booking.id) }}">
+      <form method="post" action="{{ url_for('bookings.respond_booking', booking_id=booking.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="btn-row">
           <button class="btn secondary" name="decision" value="reject">Từ Chối</button>
@@ -56,16 +59,22 @@
 
     {% elif booking.status == "PENDING" and is_renter %}
       <p class="muted">Đang chờ người cho thuê phản hồi trong vòng 24 giờ.</p>
-      <form method="post" action="{{ url_for('cancel_booking', booking_id=booking.id) }}">
+      <form method="post" action="{{ url_for('bookings.cancel_booking', booking_id=booking.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button class="btn ghost" type="submit">Hủy Yêu Cầu</button>
       </form>
 
     {% elif booking.status in ("APPROVED", "DEPOSIT_WAITING") and is_renter %}
-      <p class="muted">Thanh toán trong vòng 2-4 giờ để giữ chỗ (qua VNPAY — demo tự động thành công).</p>
-      <form method="post" action="{{ url_for('pay_deposit', booking_id=booking.id) }}">
+      {% if latest_payment and latest_payment.status == "PENDING" %}
+      <p class="muted">Đang chờ VNPay xác nhận. Nếu chưa hoàn tất thanh toán, bạn có thể tiếp tục trong thời hạn giao dịch.</p>
+      {% elif latest_payment and latest_payment.status == "FAILED" %}
+      <p class="muted">Giao dịch trước chưa thành công. Bạn có thể thử thanh toán lại.</p>
+      {% else %}
+      <p class="muted">Thanh toán trong vòng 2-4 giờ để giữ chỗ. Số tiền gồm tiền thuê và tiền cọc.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('payments.pay_deposit', booking_id=booking.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button class="btn" type="submit">Thanh Toán {{ "{:,}".format(booking.total_rent_amount + booking.deposit_amount) }}đ</button>
+        <button class="btn" type="submit">{{ 'Tiếp tục thanh toán' if latest_payment and latest_payment.status == 'PENDING' else 'Thanh toán' }} {{ "{:,}".format(booking.total_rent_amount + booking.deposit_amount) }}đ</button>
       </form>
 
     {% elif booking.status in ("APPROVED", "DEPOSIT_WAITING") and is_lender %}
@@ -73,7 +82,7 @@
 
     {% elif booking.status == "READY_FOR_PICKUP" %}
       <p class="muted">Hẹn gặp trực tiếp để bàn giao đồ. Mỗi bên xác nhận bằng ảnh khi gặp mặt.</p>
-      <form method="post" action="{{ url_for('checkin', booking_id=booking.id) }}" enctype="multipart/form-data">
+      <form method="post" action="{{ url_for('bookings.checkin', booking_id=booking.id) }}" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="field">
           <label>Ảnh tình trạng đồ lúc giao</label>
@@ -89,7 +98,7 @@
 
     {% elif booking.status == "IN_USE" %}
       {% if is_renter %}
-      <form method="post" action="{{ url_for('checkout', booking_id=booking.id) }}" enctype="multipart/form-data">
+      <form method="post" action="{{ url_for('bookings.checkout', booking_id=booking.id) }}" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="field">
           <label>Ảnh tình trạng đồ lúc trả</label>
@@ -105,7 +114,7 @@
       {% else %}
       <p class="muted">Renter đang sử dụng đồ, hạn trả {{ booking.end_date.strftime('%d/%m/%Y') }}.</p>
       {% endif %}
-      <form method="post" action="{{ url_for('open_dispute', booking_id=booking.id) }}" class="form-spaced" data-confirm="Mở tranh chấp cho đơn này?">
+      <form method="post" action="{{ url_for('bookings.open_dispute', booking_id=booking.id) }}" class="form-spaced" data-confirm="Mở tranh chấp cho đơn này?">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="reason" value="Vấn đề phát sinh trong quá trình sử dụng">
         <button class="btn ghost" type="submit">Báo Cáo Vấn Đề</button>
@@ -114,12 +123,12 @@
     {% elif booking.status == "RETURN_PENDING" and is_lender %}
       <p class="muted">Kiểm tra đồ khi Renter trả. Nếu ổn, xác nhận hoàn tất; nếu có vấn đề, mở tranh chấp.</p>
       <div class="btn-row">
-        <form method="post" action="{{ url_for('open_dispute', booking_id=booking.id) }}" class="form-flex" data-confirm="Mở tranh chấp cho đơn này?">
+        <form method="post" action="{{ url_for('bookings.open_dispute', booking_id=booking.id) }}" class="form-flex" data-confirm="Mở tranh chấp cho đơn này?">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <input type="hidden" name="reason" value="Đồ không đúng tình trạng ban đầu / trả trễ">
           <button class="btn ghost" type="submit">Báo Cáo Vấn Đề</button>
         </form>
-        <form method="post" action="{{ url_for('complete_booking', booking_id=booking.id) }}" class="form-flex">
+        <form method="post" action="{{ url_for('bookings.complete_booking', booking_id=booking.id) }}" class="form-flex">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <button class="btn" type="submit">Xác Nhận Đồ Nguyên Vẹn</button>
         </form>
@@ -130,7 +139,7 @@
 
     {% elif booking.status == "COMPLETED" %}
       {% if not already_reviewed %}
-      <form method="post" action="{{ url_for('submit_review', booking_id=booking.id) }}">
+      <form method="post" action="{{ url_for('bookings.submit_review', booking_id=booking.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="field">
           <label>Đánh giá {{ partner.full_name }}</label>
@@ -170,7 +179,7 @@
         <p class="muted chat-empty">Chưa có tin nhắn nào. Hãy thương lượng thời gian/địa điểm giao nhận!</p>
       {% endfor %}
     </div>
-    <form class="chat-input-row" method="post" action="{{ url_for('send_message', booking_id=booking.id) }}">
+    <form class="chat-input-row" method="post" action="{{ url_for('bookings.send_message', booking_id=booking.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="text" name="content" placeholder="Nhắn tin..." required>
       <button type="submit">Gửi</button>

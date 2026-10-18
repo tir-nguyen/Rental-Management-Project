@@ -17,18 +17,18 @@
   </section>
 
   {% if current_user.is_authenticated and not current_user.is_verified %}
-  <div class="verify-banner"><span>🛡️</span><div><b>Xác minh tài khoản sinh viên</b>Hoàn tất xác minh để đăng tin và thuê đồ. <a href="{{ url_for('verify_account') }}">Xác minh ngay →</a></div></div>
+  <div class="verify-banner"><span>🛡️</span><div><b>Xác minh tài khoản sinh viên</b>Hoàn tất xác minh để đăng tin và thuê đồ. <a href="{{ url_for('auth.verify_account') }}">Xác minh ngay →</a></div></div>
   {% endif %}
 
   <div class="home-layout">
     <aside class="home-filters">
       <section class="filter-panel"><div class="section-title"><h2>Danh mục</h2></div>
-        <a class="filter-link {{ 'active' if not selected_category else '' }}" href="{{ url_for('index', q=q, district=selected_district, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">Tất cả danh mục</a>
-        {% for c in categories %}<a class="filter-link {{ 'active' if selected_category==c else '' }}" href="{{ url_for('index', q=q, district=selected_district, category=c, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">{{ c }}</a>{% endfor %}
+        <a class="filter-link {{ 'active' if not selected_category else '' }}" href="{{ url_for('listings.index', q=q, district=selected_district, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">Tất cả danh mục</a>
+        {% for c in categories %}<a class="filter-link {{ 'active' if selected_category==c else '' }}" href="{{ url_for('listings.index', q=q, district=selected_district, category=c, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">{{ c }}</a>{% endfor %}
       </section>
       <section class="filter-panel"><div class="section-title"><h2>Khu vực</h2></div>
-        <a class="filter-link {{ 'active' if not selected_district else '' }}" href="{{ url_for('index', q=q, category=selected_category, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">Toàn Hà Nội</a>
-        {% for d in districts %}<a class="filter-link {{ 'active' if selected_district==d else '' }}" href="{{ url_for('index', q=q, category=selected_category, district=d, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">{{ d }}</a>{% endfor %}
+        <a class="filter-link {{ 'active' if not selected_district else '' }}" href="{{ url_for('listings.index', q=q, category=selected_category, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">Toàn Hà Nội</a>
+        {% for d in districts %}<a class="filter-link {{ 'active' if selected_district==d else '' }}" href="{{ url_for('listings.index', q=q, category=selected_category, district=d, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">{{ d }}</a>{% endfor %}
       </section>
       <form method="get" class="filter-panel price-filter">
         {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}{% if selected_district %}<input type="hidden" name="district" value="{{ selected_district }}">{% endif %}{% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
@@ -44,7 +44,7 @@
     <section class="home-results">
       <div class="section-title"><div><span class="eyebrow">GỢI Ý CHO BẠN</span><h2>{{ 'Kết quả tìm kiếm' if (q or selected_district or selected_category) else 'Đồ đang được cho thuê' }}</h2></div><span class="muted">{{ listings|length }} sản phẩm</span></div>
       {% if listings %}<div class="listing-grid">
-        {% for l in listings %}<a class="card" href="{{ url_for('listing_detail', listing_id=l.id) }}">
+        {% for l in listings %}<a class="card" href="{{ url_for('listings.listing_detail', listing_id=l.id) }}">
           <div class="card-img">{% if l.cover_image %}<img src="{{ url_for('static', filename=l.cover_image) }}" alt="{{ l.title }}">{% else %}<span>Chưa có ảnh</span>{% endif %}</div>
           <div class="card-body"><div class="card-title">{{ l.title }}</div><div class="card-price">{{ "{:,}".format(l.price_per_day) }}đ <small>/ ngày</small></div><div class="card-meta"><span>{{ l.district }}</span><span>Cọc {{ "{:,}".format(l.deposit_amount) }}đ</span></div></div>
         </a>{% endfor %}

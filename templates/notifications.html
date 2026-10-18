@@ -7,7 +7,7 @@
     <div class="booking-card notification-card {{ 'read' if item.read_at else 'unread' }}">
       <div>{{ item.message }}</div>
       <div class="muted notification-timestamp">{{ item.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
-      <form method="post" action="{{ url_for('mark_notification_read', notification_id=item.id) }}" class="notification-form">
+      <form method="post" action="{{ url_for('listings.mark_notification_read', notification_id=item.id) }}" class="notification-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button class="btn {{ 'secondary' if item.read_at else '' }}" type="submit">
           {{ 'Mở đơn hàng' if item.booking_id else ('Đã đọc' if item.read_at else 'Đánh dấu đã đọc') }}

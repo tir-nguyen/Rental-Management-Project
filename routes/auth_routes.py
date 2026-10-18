@@ -1,11 +1,14 @@
 """Authentication and student verification HTTP handlers."""
 
-from flask import current_app, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from models import DISTRICTS
 from services import auth_service
 from services.auth_service import AuthError
+
+auth_bp = Blueprint("auth", __name__)
+
 
 def register():
     if request.method == "POST":
@@ -25,7 +28,7 @@ def register():
         otp = auth_service.generate_otp()
         session["pending_otp"] = otp
         flash(f"(Demo) Mã OTP của bạn là {otp}", "info")
-        return redirect(url_for("verify_account"))
+        return redirect(url_for("auth.verify_account"))
 
     return render_template("auth/register.html", districts=DISTRICTS)
 
@@ -48,7 +51,7 @@ def verify_account():
             flash(str(e), "error")
 
         if current_user.is_verified:
-            return redirect(url_for("index"))
+            return redirect(url_for("listings.index"))
 
     return render_template("auth/verify.html")
 
@@ -59,21 +62,16 @@ def login():
         )
         if user:
             login_user(user)
-            return redirect(url_for("index"))
+            return redirect(url_for("listings.index"))
         flash("Email hoặc mật khẩu không đúng.", "error")
     return render_template("auth/login.html")
 
 def logout():
     logout_user()
-    return redirect(url_for("index"))
+    return redirect(url_for("listings.index"))
 
 
-def register_routes(app):
-    route_definitions = [
-        ("/dang-ky", "register", register, ["GET", "POST"]),
-        ("/xac-minh", "verify_account", verify_account, ["GET", "POST"]),
-        ("/dang-nhap", "login", login, ["GET", "POST"]),
-        ("/dang-xuat", "logout", logout, ["POST"]),
-    ]
-    for rule, endpoint, view, methods in route_definitions:
-        app.add_url_rule(rule, endpoint=endpoint, view_func=view, methods=methods)
+auth_bp.add_url_rule("/dang-ky", endpoint="register", view_func=register, methods=["GET", "POST"])
+auth_bp.add_url_rule("/xac-minh", endpoint="verify_account", view_func=verify_account, methods=["GET", "POST"])
+auth_bp.add_url_rule("/dang-nhap", endpoint="login", view_func=login, methods=["GET", "POST"])
+auth_bp.add_url_rule("/dang-xuat", endpoint="logout", view_func=logout, methods=["POST"])

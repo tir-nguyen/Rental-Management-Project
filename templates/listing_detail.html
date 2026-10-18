@@ -13,15 +13,15 @@
     <div class="rental-request-card">
       <span class="eyebrow">ĐẶT LỊCH THUÊ</span><h2>Chọn thời gian thuê</h2>
       {% if current_user.is_authenticated and current_user.id != listing.owner_id %}
-      <form method="post" action="{{ url_for('request_rental', listing_id=listing.id) }}">
+      <form method="post" action="{{ url_for('bookings.request_rental', listing_id=listing.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="field"><label>Ngày nhận</label><input type="date" name="start_date" min="{{ today.isoformat() }}" required></div>
         <div class="field"><label>Ngày trả</label><input type="date" name="end_date" min="{{ today.isoformat() }}" required></div>
         <div class="note-box">Người cho thuê sẽ xác nhận yêu cầu trước khi hợp đồng bắt đầu.</div>
         <button class="btn" type="submit">Gửi yêu cầu thuê</button>
       </form>
-      {% elif not current_user.is_authenticated %}<p class="muted">Đăng nhập để chọn lịch và gửi yêu cầu thuê.</p><a class="btn" href="{{ url_for('login') }}">Đăng nhập để thuê</a>
-      {% else %}<p class="muted">Đây là tin đăng của bạn.</p><a class="btn secondary" href="{{ url_for('my_listings') }}">Quản lý tin đăng</a>{% endif %}
+      {% elif not current_user.is_authenticated %}<p class="muted">Đăng nhập để chọn lịch và gửi yêu cầu thuê.</p><a class="btn" href="{{ url_for('auth.login') }}">Đăng nhập để thuê</a>
+      {% else %}<p class="muted">Đây là tin đăng của bạn.</p><a class="btn secondary" href="{{ url_for('listings.my_listings') }}">Quản lý tin đăng</a>{% endif %}
       <div class="rental-safe">✓ Không thu phí trước khi yêu cầu được xác nhận</div>
     </div>
   </aside>

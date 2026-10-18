@@ -86,21 +86,6 @@ def respond(booking, actor, decision):
     return booking
 
 
-def pay_deposit(booking, actor):
-    if actor.id != booking.renter_id or booking.status not in ("APPROVED", "DEPOSIT_WAITING"):
-        raise BookingError("Không có quyền thực hiện hành động này.")
-
-    # (Demo) Mô phỏng thanh toán VNPAY — thực tế cần gọi API cổng thanh toán và xử lý callback
-    db.session.add(Transaction(
-        booking_id=booking.id, type="DEPOSIT_HOLD",
-        amount=booking.total_rent_amount + booking.deposit_amount, status="SUCCESS",
-    ))
-    booking.status = "READY_FOR_PICKUP"
-    notification_service.notify(booking.lender_id, "Người thuê đã thanh toán; hãy hẹn giao nhận đồ.", booking.id)
-    db.session.commit()
-    return booking
-
-
 def _ensure_party(booking, user):
     if user.id not in (booking.renter_id, booking.lender_id):
         raise BookingError("Bạn không liên quan đến đơn hàng này.")

@@ -5,14 +5,14 @@
   <h1>Hợp đồng thuê đồ</h1>
 
   <div class="tab-row">
-    <a class="{{ 'active' if tab=='thue' else '' }}" href="{{ url_for('booking_list', tab='thue') }}">Đang đi thuê</a>
-    <a class="{{ 'active' if tab=='cho' else '' }}" href="{{ url_for('booking_list', tab='cho') }}">Cho thuê</a>
+    <a class="{{ 'active' if tab=='thue' else '' }}" href="{{ url_for('bookings.booking_list', tab='thue') }}">Đang đi thuê</a>
+    <a class="{{ 'active' if tab=='cho' else '' }}" href="{{ url_for('bookings.booking_list', tab='cho') }}">Cho thuê</a>
   </div>
 
   {% if bookings %}
     <div class="booking-list-grid">
     {% for b in bookings %}
-    <a class="booking-card booking-list-card" href="{{ url_for('booking_detail', booking_id=b.id) }}">
+    <a class="booking-card booking-list-card" href="{{ url_for('bookings.booking_detail', booking_id=b.id) }}">
       <div class="top">
         <span class="code">Mã HĐ #{{ '%04d'|format(b.id) }}</span>
         <span class="status-pill st-{{ b.status }}">{{ b.status }}</span>

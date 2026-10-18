@@ -2,11 +2,14 @@
 
 from datetime import date, datetime
 
-from flask import abort, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from models import AvailabilityBlock, CATEGORIES, DISTRICTS, Notification
 from services import listing_service, notification_service
+
+listings_bp = Blueprint("listings", __name__)
+
 
 def index():
     q = request.args.get("q", "").strip()
@@ -55,7 +58,7 @@ def listing_detail(listing_id):
 def create_listing():
     if not current_user.is_verified:
         flash("Bạn cần xác minh tài khoản trước khi đăng tin.", "error")
-        return redirect(url_for("verify_account"))
+        return redirect(url_for("auth.verify_account"))
 
     if request.method == "POST":
         try:
@@ -66,7 +69,7 @@ def create_listing():
             flash(str(e), "error")
             return render_template("listing_form.html", districts=DISTRICTS, categories=CATEGORIES)
         flash("Đăng tin thành công!", "success")
-        return redirect(url_for("listing_detail", listing_id=listing.id))
+        return redirect(url_for("listings.listing_detail", listing_id=listing.id))
 
     return render_template("listing_form.html", districts=DISTRICTS, categories=CATEGORIES)
 
@@ -85,8 +88,8 @@ def mark_notification_read(notification_id):
     if not notification_service.mark_read(notification, current_user.id):
         abort(403)
     if notification.booking_id:
-        return redirect(url_for("booking_detail", booking_id=notification.booking_id))
-    return redirect(url_for("notifications"))
+        return redirect(url_for("bookings.booking_detail", booking_id=notification.booking_id))
+    return redirect(url_for("listings.notifications"))
 
 @login_required
 def block_listing_dates(listing_id):
@@ -97,9 +100,9 @@ def block_listing_dates(listing_id):
         listing_service.block_dates(listing, current_user.id, start, end)
     except (ValueError, listing_service.ListingError) as e:
         flash(str(e) or "Vui lòng chọn ngày hợp lệ.", "error")
-        return redirect(url_for("my_listings"))
+        return redirect(url_for("listings.my_listings"))
     flash("Đã khóa ngày trong lịch của món đồ.", "success")
-    return redirect(url_for("my_listings"))
+    return redirect(url_for("listings.my_listings"))
 
 @login_required
 def toggle_listing_visibility(listing_id):
@@ -108,7 +111,7 @@ def toggle_listing_visibility(listing_id):
         listing_service.toggle_visibility(listing, current_user.id)
     except listing_service.ListingError as e:
         flash(str(e), "error")
-    return redirect(url_for("my_listings"))
+    return redirect(url_for("listings.my_listings"))
 
 @login_required
 def remove_listing_block(block_id):
@@ -117,20 +120,27 @@ def remove_listing_block(block_id):
         listing_service.remove_owner_block(block, current_user.id)
     except listing_service.ListingError as e:
         flash(str(e), "error")
-    return redirect(url_for("my_listings"))
+    return redirect(url_for("listings.my_listings"))
 
 
-def register_routes(app):
-    route_definitions = [
-        ("/", "index", index, ["GET"]),
-        ("/san-pham/<int:listing_id>", "listing_detail", listing_detail, ["GET"]),
-        ("/dang-tin", "create_listing", create_listing, ["GET", "POST"]),
-        ("/tin-cua-toi", "my_listings", my_listings, ["GET"]),
-        ("/thong-bao", "notifications", notifications, ["GET"]),
-        ("/thong-bao/<int:notification_id>/doc", "mark_notification_read", mark_notification_read, ["POST"]),
-        ("/san-pham/<int:listing_id>/lich-ban", "block_listing_dates", block_listing_dates, ["POST"]),
-        ("/san-pham/<int:listing_id>/hien-an", "toggle_listing_visibility", toggle_listing_visibility, ["POST"]),
-        ("/lich-ban/<int:block_id>/xoa", "remove_listing_block", remove_listing_block, ["POST"]),
-    ]
-    for rule, endpoint, view, methods in route_definitions:
-        app.add_url_rule(rule, endpoint=endpoint, view_func=view, methods=methods)
+listings_bp.add_url_rule("/", endpoint="index", view_func=index, methods=["GET"])
+listings_bp.add_url_rule("/san-pham/<int:listing_id>", endpoint="listing_detail", view_func=listing_detail, methods=["GET"])
+listings_bp.add_url_rule("/dang-tin", endpoint="create_listing", view_func=create_listing, methods=["GET", "POST"])
+listings_bp.add_url_rule("/tin-cua-toi", endpoint="my_listings", view_func=my_listings, methods=["GET"])
+listings_bp.add_url_rule("/thong-bao", endpoint="notifications", view_func=notifications, methods=["GET"])
+listings_bp.add_url_rule(
+    "/thong-bao/<int:notification_id>/doc", endpoint="mark_notification_read",
+    view_func=mark_notification_read, methods=["POST"],
+)
+listings_bp.add_url_rule(
+    "/san-pham/<int:listing_id>/lich-ban", endpoint="block_listing_dates",
+    view_func=block_listing_dates, methods=["POST"],
+)
+listings_bp.add_url_rule(
+    "/san-pham/<int:listing_id>/hien-an", endpoint="toggle_listing_visibility",
+    view_func=toggle_listing_visibility, methods=["POST"],
+)
+listings_bp.add_url_rule(
+    "/lich-ban/<int:block_id>/xoa", endpoint="remove_listing_block",
+    view_func=remove_listing_block, methods=["POST"],
+)

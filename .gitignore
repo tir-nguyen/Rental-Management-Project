@@ -1,0 +1,20 @@
+# Python environments and bytecode
+.venv/
+venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# IDE settings
+.idea/
+.vscode/
+.env
+.env.*
+!.env.example
+
+# Local database
+/rental.db
+
+# User-uploaded files
+/static/uploads/*
+!/static/uploads/.gitkeep

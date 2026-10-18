@@ -112,6 +112,7 @@ class Booking(db.Model):
     messages = db.relationship("Message", backref="booking", lazy=True, order_by="Message.sent_at")
     evidences = db.relationship("HandoverEvidence", backref="booking", lazy=True)
     transactions = db.relationship("Transaction", backref="booking", lazy=True)
+    payment_attempts = db.relationship("PaymentAttempt", backref="booking", lazy=True)
     dispute = db.relationship("Dispute", backref="booking", uselist=False)
     review = db.relationship("Review", backref="booking", lazy=True)
 
@@ -135,10 +136,24 @@ class Transaction(db.Model):
     __tablename__ = "transactions"
     id = db.Column(db.Integer, primary_key=True)
     booking_id = db.Column(db.Integer, db.ForeignKey("bookings.id"), nullable=False)
-    type = db.Column(db.String(30))  # DEPOSIT_HOLD, RENT_PAYOUT, RENT_REFUND, DEPOSIT_REFUND, DEPOSIT_DEDUCTION
+    type = db.Column(db.String(30))  # VNPAY_PAYMENT, RENT_PAYOUT, RENT_REFUND, DEPOSIT_REFUND, DEPOSIT_DEDUCTION
     amount = db.Column(db.Integer)
     status = db.Column(db.String(20), default="SUCCESS")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class PaymentAttempt(db.Model):
+    __tablename__ = "payment_attempts"
+    id = db.Column(db.Integer, primary_key=True)
+    booking_id = db.Column(db.Integer, db.ForeignKey("bookings.id"), nullable=False, index=True)
+    txn_ref = db.Column(db.String(64), unique=True, nullable=False)
+    amount = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="PENDING")
+    response_code = db.Column(db.String(10))
+    transaction_no = db.Column(db.String(32))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    paid_at = db.Column(db.DateTime)
 
 
 class Message(db.Model):
