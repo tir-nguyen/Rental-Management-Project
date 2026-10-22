@@ -1,8 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Hợp đồng thuê đồ{% endblock %}
+{% block page_class %}booking-list-page{% endblock %}
 {% block content %}
 
-  <h1>Hợp đồng thuê đồ</h1>
+  <div class="page-intro">
+    <span class="eyebrow">QUẢN LÝ GIAO DỊCH</span>
+    <h1>Hợp đồng thuê đồ</h1>
+  </div>
 
   <div class="tab-row">
     <a class="{{ 'active' if tab=='thue' else '' }}" href="{{ url_for('bookings.booking_list', tab='thue') }}">Đang đi thuê</a>
@@ -18,9 +22,9 @@
         <span class="status-pill st-{{ b.status }}">{{ b.status }}</span>
       </div>
       <div class="booking-card-title">{{ b.listing.title }}</div>
-      <div class="muted booking-card-meta">
-        {{ b.start_date.strftime('%d/%m') }} – {{ b.end_date.strftime('%d/%m') }}
-        · {{ "{:,}".format(b.total_rent_amount) }}đ
+      <div class="booking-card-summary">
+        <span class="booking-card-meta">{{ b.start_date.strftime('%d/%m/%Y') }} – {{ b.end_date.strftime('%d/%m/%Y') }}</span>
+        <strong>{{ "{:,}".format(b.total_rent_amount) }}đ</strong>
       </div>
     </a>
     {% endfor %}

@@ -1,4 +1,4 @@
-# SẵnThuê — Web cho thuê đồ giữa sinh viên (Hà Nội)
+# Web cho thuê đồ giữa sinh viên (Hà Nội)
 
 Flask + SQLite, mobile-first (responsive): mở link bằng trình duyệt điện thoại sẽ ra đúng
 layout giống mockup app (bottom nav, card 1 cột...); mở trên máy tính thì layout vẫn hiển thị
@@ -50,7 +50,8 @@ rentalweb/
 │   ├── listing_routes.py      # Blueprint listings
 │   ├── booking_routes.py      # Blueprint bookings
 │   ├── admin_routes.py        # Blueprint admin
-│   └── payment_routes.py      # Blueprint payments: tạo yêu cầu, Return, IPN VNPay
+│   ├── payment_routes.py      # Blueprint payments: tạo yêu cầu, Return, IPN VNPay
+│   └── profile_routes.py      # Hồ sơ riêng và hồ sơ công khai người dùng
 ├── services/                  # Xử lý nghiệp vụ, tách khỏi HTTP handlers
 │   ├── __init__.py
 │   ├── admin_service.py
@@ -59,6 +60,7 @@ rentalweb/
 │   ├── listing_service.py
 │   ├── notification_service.py
 │   ├── payment_service.py     # Tạo URL VNPay và xác minh Return/IPN
+│   ├── profile_service.py     # Cập nhật hồ sơ và truy vấn dữ liệu công khai
 │   ├── review_service.py
 │   ├── seed_service.py
 │   └── upload_service.py
@@ -72,6 +74,9 @@ rentalweb/
 │   ├── listing_form.html      # Đăng tin cho thuê
 │   ├── my_listings.html       # Tin của tôi
 │   ├── notifications.html     # Danh sách thông báo
+│   ├── profiles/
+│   │   ├── my_profile.html    # Hồ sơ riêng, chỉ chủ tài khoản chỉnh sửa
+│   │   └── public_profile.html # Thông tin công khai và tin đang cho thuê
 │   ├── auth/
 │   │   ├── register.html
 │   │   ├── login.html
@@ -82,7 +87,7 @@ rentalweb/
 │   └── admin/
 │       └── dashboard.html     # Duyệt KYC + xử lý tranh chấp
 └── static/
-    ├── css/style.css           # Toàn bộ style mobile-first
+    ├── css/style.css           # Giao diện responsive desktop-first
     ├── demo/                   # Ảnh minh họa cho tin demo
     ├── js/app.js               # Tương tác dùng chung
     └── uploads/                # File người dùng tải lên; không đưa lên Git
@@ -98,7 +103,8 @@ file bên trong không được đưa lên Git.
   DEPOSIT_WAITING → READY_FOR_PICKUP → IN_USE → RETURN_PENDING → COMPLETED,
   cộng DISPUTED và CANCELLED.
 - **Thanh toán VNPay sandbox**: thanh toán tiền thuê + tiền cọc qua VNPay;
-  đơn chỉ sẵn sàng bàn giao sau khi backend xác thực IPN.
+  khi chạy sandbox local, Return có chữ ký hợp lệ cũng xác nhận được đơn vì
+  VNPay không thể gửi IPN trực tiếp tới `localhost`.
 - **Handover có bằng chứng**: check-in/check-out yêu cầu 4-6 ảnh/video + ghi chú, xác nhận
   2 chiều mới chuyển trạng thái.
 - **Reputation system**: điểm bắt đầu 100, +điểm khi hoàn tất/5 sao, -điểm khi
@@ -108,6 +114,11 @@ file bên trong không được đưa lên Git.
   trên lịch của món đồ, không cho người khác đặt trùng.
 - **Admin module**: duyệt KYC (xem ảnh thẻ SV), xử lý tranh chấp (hoàn 100% /
   trích cọc đền lender / chia đôi), tự động cập nhật trust score người vi phạm.
+- **Hồ sơ người dùng**: `/ho-so` cho chủ tài khoản cập nhật tên/khu vực;
+  `/nguoi-dung/<id>` chỉ hiển thị tên, ngày tham gia, trạng thái xác minh,
+  thống kê đánh giá/giao dịch và tin đang công khai. Email, điện thoại, ảnh KYC
+  và khu vực cá nhân không xuất hiện trên hồ sơ công khai. Email/số điện thoại
+  hiện chưa cho sửa vì ứng dụng chưa có luồng xác minh lại an toàn.
 - **Giới hạn Hà Nội**: danh sách quận/huyện cố định dùng cho lọc & đăng tin.
 - **Giao nhận trực tiếp**: không có logic vận chuyển — chỉ có ô ghi chú hẹn gặp
   và khung chat để 2 bên tự thỏa thuận địa điểm.
@@ -135,9 +146,11 @@ $env:VNPAY_RETURN_URL = "https://<host-cong-khai>/thanh-toan/vnpay/return"
 ```
 
 Đăng ký IPN URL `https://<host-cong-khai>/thanh-toan/vnpay/ipn` trong cấu hình
-merchant sandbox của VNPay. Return URL chỉ hiển thị trạng thái; IPN có chữ ký hợp
-lệ mới cập nhật thanh toán. Nếu không có tunnel, có thể kiểm tra tạo URL và xác
-minh callback giả lập bằng test, nhưng VNPay không thể gửi IPN tới `localhost`.
+merchant sandbox của VNPay. Với URL sandbox mặc định, Return có chữ ký hợp lệ
+sẽ cập nhật trạng thái để hỗ trợ chạy local không có tunnel/IPN. Khi triển khai
+công khai, đặt `VNPAY_CONFIRM_ON_RETURN=0` và chỉ dùng IPN đã xác thực để xác
+nhận thanh toán. Tùy chọn này mặc định bật riêng cho host `sandbox.vnpayment.vn`
+và tắt khi URL thanh toán không phải host sandbox đó.
 Nếu tiền về sau khi đơn đã bị hủy/hết hạn, giao dịch được đánh dấu cần kiểm tra;
 ứng dụng hiện chưa tự động gọi API hoàn tiền.
 

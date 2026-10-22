@@ -1,20 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Admin{% endblock %}
+{% block page_class %}admin-page{% endblock %}
 {% block content %}
 
-  <h1>Admin Dashboard</h1>
+  <div class="admin-heading">
+    <div>
+      <span class="eyebrow">QUẢN TRỊ HỆ THỐNG</span>
+      <h1>Admin Dashboard</h1>
+    </div>
+  </div>
 
   <div class="section">
-    <h2>Duyệt KYC ({{ pending_kyc|length }})</h2>
+    <div class="section-title">
+      <h2>Duyệt hồ sơ sinh viên</h2>
+      <span class="admin-count">{{ pending_kyc|length }} chờ duyệt</span>
+    </div>
     {% if pending_kyc %}
+      <div class="admin-card-grid">
       {% for u in pending_kyc %}
-      <div class="booking-card">
+      <div class="booking-card admin-review-card">
         <div class="top">
           <b>{{ u.full_name }}</b>
           <span class="muted">{{ u.school_email }}</span>
         </div>
         {% if u.kyc_card_image %}
-        <img class="admin-kyc-image" src="{{ url_for('static', filename=u.kyc_card_image) }}" alt="Thẻ sinh viên của {{ u.full_name }}">
+        <button
+          class="admin-kyc-preview"
+          type="button"
+          data-image-preview="{{ url_for('static', filename=u.kyc_card_image) }}"
+          data-image-alt="Thẻ sinh viên của {{ u.full_name }}"
+          aria-label="Phóng to thẻ sinh viên của {{ u.full_name }}"
+        >
+          <img class="admin-kyc-image" src="{{ url_for('static', filename=u.kyc_card_image) }}" alt="" loading="lazy">
+          <span>Nhấn để xem ảnh lớn</span>
+        </button>
         {% endif %}
         <form method="post" action="{{ url_for('admin.admin_resolve_kyc', user_id=u.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -25,18 +44,30 @@
         </form>
       </div>
       {% endfor %}
+      </div>
     {% else %}
       <p class="muted">Không có hồ sơ KYC chờ duyệt.</p>
     {% endif %}
   </div>
 
+  <dialog class="admin-image-dialog" id="admin-image-dialog" aria-label="Xem ảnh">
+    <form method="dialog">
+      <button class="admin-image-close" type="submit" aria-label="Đóng ảnh">×</button>
+    </form>
+    <img id="admin-image-dialog-img" alt="">
+  </dialog>
+
   <div class="divider"></div>
 
   <div class="section">
-    <h2>Tranh chấp đang mở ({{ disputes|length }})</h2>
+    <div class="section-title">
+      <h2>Tranh chấp đang mở</h2>
+      <span class="admin-count">{{ disputes|length }} vụ việc</span>
+    </div>
     {% if disputes %}
+      <div class="admin-dispute-list">
       {% for d in disputes %}
-      <div class="booking-card">
+      <div class="booking-card admin-dispute-card">
         <div class="top">
           <b>Đơn #{{ '%04d'|format(d.booking.id) }}</b>
           <span class="muted">{{ d.booking.listing.title }}</span>
@@ -88,6 +119,7 @@
         </form>
       </div>
       {% endfor %}
+      </div>
     {% else %}
       <p class="muted">Không có tranh chấp nào đang mở.</p>
     {% endif %}

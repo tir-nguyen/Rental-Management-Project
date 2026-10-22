@@ -4,6 +4,7 @@ from .auth_routes import auth_bp
 from .booking_routes import bookings_bp
 from .listing_routes import listings_bp
 from .payment_routes import payments_bp
+from .profile_routes import profiles_bp
 
 
 def register_blueprints(app):
@@ -12,3 +13,4 @@ def register_blueprints(app):
     app.register_blueprint(bookings_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(payments_bp)
+    app.register_blueprint(profiles_bp)

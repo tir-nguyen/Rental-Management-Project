@@ -136,22 +136,22 @@ def get_verified_return(params, has_duplicates=False):
     return _get_verified_attempt(params, has_duplicates)
 
 
-def process_ipn(params, has_duplicates=False):
-    """Apply a signed IPN once and return the VNPay acknowledgement."""
-    if has_duplicates:
-        return "97", "Invalid signature"
+def confirm_verified_return(params, has_duplicates=False):
+    """Apply a signed sandbox return when local VNPay IPN is unavailable."""
+    attempt = _get_verified_attempt(params, has_duplicates)
+    if attempt is None:
+        return None
+    if not current_app.config.get("VNPAY_CONFIRM_ON_RETURN", False):
+        return attempt
 
-    tmn_code, hash_secret, _ = _credentials()
-    if not _valid_signature(params, hash_secret) or params.get("vnp_TmnCode") != tmn_code:
-        return "97", "Invalid signature"
+    _apply_verified_result(attempt, params)
+    db.session.refresh(attempt)
+    return attempt
+
+
+def _apply_verified_result(attempt, params):
     if not params.get("vnp_ResponseCode") or not params.get("vnp_TransactionStatus"):
         return "04", "Invalid transaction status"
-
-    attempt = PaymentAttempt.query.filter_by(txn_ref=params.get("vnp_TxnRef", "")).first()
-    if attempt is None:
-        return "01", "Order not found"
-    if params.get("vnp_Amount") != str(attempt.amount * 100):
-        return "04", "Invalid amount"
     if attempt.status not in ("PENDING", "EXPIRED"):
         return "02", "Order already confirmed"
 
@@ -163,7 +163,7 @@ def process_ipn(params, has_duplicates=False):
     if not paid:
         result = db.session.execute(
             update(PaymentAttempt)
-            .where(PaymentAttempt.id == attempt.id, PaymentAttempt.status == "PENDING")
+            .where(PaymentAttempt.id == attempt.id, PaymentAttempt.status == attempt.status)
             .values(status="FAILED", response_code=params.get("vnp_ResponseCode"))
         )
         if result.rowcount:
@@ -216,3 +216,22 @@ def process_ipn(params, has_duplicates=False):
         )
     db.session.commit()
     return "00", "Confirm Success"
+
+
+def process_ipn(params, has_duplicates=False):
+    """Apply a signed IPN once and return the VNPay acknowledgement."""
+    if has_duplicates:
+        return "97", "Invalid signature"
+
+    tmn_code, hash_secret, _ = _credentials()
+    if not _valid_signature(params, hash_secret) or params.get("vnp_TmnCode") != tmn_code:
+        return "97", "Invalid signature"
+    if not params.get("vnp_ResponseCode") or not params.get("vnp_TransactionStatus"):
+        return "04", "Invalid transaction status"
+
+    attempt = PaymentAttempt.query.filter_by(txn_ref=params.get("vnp_TxnRef", "")).first()
+    if attempt is None:
+        return "01", "Order not found"
+    if params.get("vnp_Amount") != str(attempt.amount * 100):
+        return "04", "Invalid amount"
+    return _apply_verified_result(attempt, params)

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.display_name }} · Hồ sơ{% endblock %}
+{% block page_class %}public-profile-page{% endblock %}
+{% block content %}
+  <section class="public-profile-header">
+    <div class="profile-large-avatar" aria-hidden="true">{{ profile.display_name.strip()[:1]|upper }}</div>
+    <div class="public-profile-identity">
+      <span class="eyebrow">HỒ SƠ NGƯỜI DÙNG</span>
+      <h1>{{ profile.display_name }}</h1>
+      {% if profile.is_verified %}
+      <span class="profile-verified-badge">Đã xác minh</span>
+      {% else %}
+      <span class="profile-unverified-badge">Chưa xác minh</span>
+      {% endif %}
+      <p class="muted">Tham gia từ {{ profile.joined_at.strftime('%d/%m/%Y') }}</p>
+    </div>
+  </section>
+
+  <section class="profile-stats" aria-label="Thông tin hoạt động">
+    <div class="profile-stat">
+      <span class="profile-stat-value">{{ profile.listings.total }}</span>
+      <span class="profile-stat-label">Tin đang cho thuê</span>
+    </div>
+    <div class="profile-stat">
+      <span class="profile-stat-value">{{ '%.1f'|format(profile.rating_average) if profile.rating_average is not none else '—' }}</span>
+      <span class="profile-stat-label">Điểm đánh giá · {{ profile.review_count }} lượt</span>
+    </div>
+    <div class="profile-stat">
+      <span class="profile-stat-value">{{ profile.completed_count }}</span>
+      <span class="profile-stat-label">Giao dịch hoàn tất</span>
+    </div>
+  </section>
+
+  <section class="profile-listings-section">
+    <div class="section-title profile-listings-heading">
+      <div>
+        <span class="eyebrow">DANH SÁCH CÔNG KHAI</span>
+        <h2>Món đồ đang cho thuê</h2>
+      </div>
+    </div>
+    {% if profile.listings.items %}
+      {% set image_fallbacks = {
+        'Máy ảnh & Thiết bị': 'camera',
+        'Xe cộ': 'vehicle',
+        'Trang phục': 'clothes',
+        'Sách & Giáo trình': 'books',
+        'Phụ kiện sự kiện': 'event',
+        'Dụng cụ thể thao': 'sport',
+        'Đồ gia dụng & Khác': 'home'
+      } %}
+      <div class="listing-grid">
+        {% for listing in profile.listings.items %}
+        {% set fallback_image = 'demo/' ~ image_fallbacks.get(listing.category, 'home') ~ '.svg' %}
+        <a class="card" href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}">
+          <div class="card-img">
+            <img
+              src="{{ url_for('static', filename=listing.cover_image if listing.cover_image else fallback_image) }}"
+              data-fallback-src="{{ url_for('static', filename=fallback_image) }}"
+              alt="{{ listing.title }}"
+              loading="lazy"
+            >
+          </div>
+          <div class="card-body">
+            <div class="card-title">{{ listing.title }}</div>
+            <div class="card-price">{{ "{:,}".format(listing.price_per_day) }}đ <small>/ ngày</small></div>
+            <div class="card-meta">
+              <span>{{ listing.district }}</span>
+              <span>Cọc {{ "{:,}".format(listing.deposit_amount) }}đ</span>
+            </div>
+            <span class="badge badge-owner profile-listing-status">Đang cho thuê</span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% if profile.listings.pages > 1 %}
+      <nav class="profile-pagination" aria-label="Phân trang tin đăng">
+        {% if profile.listings.has_prev %}
+        <a href="{{ url_for('profiles.public_profile', user_id=profile.user_id, page=profile.listings.prev_num) }}">← Trang trước</a>
+        {% endif %}
+        <span>Trang {{ profile.listings.page }} / {{ profile.listings.pages }}</span>
+        {% if profile.listings.has_next %}
+        <a href="{{ url_for('profiles.public_profile', user_id=profile.user_id, page=profile.listings.next_num) }}">Trang sau →</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+    {% else %}
+      <div class="profile-empty-listings">Hiện chưa có món đồ nào đang được cho thuê.</div>
+    {% endif %}
+  </section>
+{% endblock %}

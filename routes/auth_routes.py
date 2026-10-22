@@ -68,7 +68,7 @@ def login():
 
 def logout():
     logout_user()
-    return redirect(url_for("listings.index"))
+    return redirect(url_for("auth.login"))
 
 
 auth_bp.add_url_rule("/dang-ky", endpoint="register", view_func=register, methods=["GET", "POST"])

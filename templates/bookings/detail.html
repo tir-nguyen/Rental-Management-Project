@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Đơn #{{ booking.id }}{% endblock %}
+{% block page_class %}booking-detail-shell{% endblock %}
 {% block content %}
 {% set is_lender = current_user.id == booking.lender_id %}
 {% set is_renter = current_user.id == booking.renter_id %}
@@ -26,14 +27,33 @@
   <div class="booking-layout">
   <section class="booking-main">
     <div class="booking-product">
-      <div class="booking-product-img">{% if booking.listing.cover_image %}<img src="{{ url_for('static', filename=booking.listing.cover_image) }}" alt="{{ booking.listing.title }}">{% endif %}</div>
+      {% set image_fallbacks = {
+        'Máy ảnh & Thiết bị': 'camera',
+        'Xe cộ': 'vehicle',
+        'Trang phục': 'clothes',
+        'Sách & Giáo trình': 'books',
+        'Phụ kiện sự kiện': 'event',
+        'Dụng cụ thể thao': 'sport',
+        'Đồ gia dụng & Khác': 'home'
+      } %}
+      {% set fallback_image = 'demo/' ~ image_fallbacks.get(booking.listing.category, 'home') ~ '.svg' %}
+      <div class="booking-product-img">
+        <img
+          src="{{ url_for('static', filename=booking.listing.cover_image if booking.listing.cover_image else fallback_image) }}"
+          data-fallback-src="{{ url_for('static', filename=fallback_image) }}"
+          alt="{{ booking.listing.title }}"
+        >
+      </div>
       <div><span class="eyebrow">CHI TIẾT MÓN ĐỒ</span><h2>{{ booking.listing.title }}</h2><p class="muted">{{ booking.listing.district }} · {{ booking.listing.category }}</p></div>
     </div>
   <div class="kv-grid">
     <div class="kv"><div class="k">Thời gian thuê</div><div class="v">{{ booking.start_date.strftime('%d/%m') }} - {{ booking.end_date.strftime('%d/%m') }}</div></div>
     <div class="kv"><div class="k">Tổng tiền</div><div class="v">{{ "{:,}".format(booking.total_rent_amount) }}đ</div></div>
     <div class="kv"><div class="k">Tiền cọc</div><div class="v">{{ "{:,}".format(booking.deposit_amount) }}đ</div></div>
-    <div class="kv"><div class="k">{{ 'Người cho thuê' if is_renter else 'Người thuê' }}</div><div class="v">{{ partner.full_name }}</div></div>
+    <div class="kv">
+      <div class="k">{{ 'Người cho thuê' if is_renter else 'Người thuê' }}</div>
+      <div class="v"><a class="profile-inline-link" href="{{ url_for('profiles.public_profile', user_id=partner.id) }}">{{ partner.full_name }}</a></div>
+    </div>
     <div class="kv"><div class="k">Trust Score</div><div class="v">{{ partner.trust_score }}</div></div>
   </div>
 

@@ -25,8 +25,11 @@ def unread_count(user_id):
     return Notification.query.filter_by(user_id=user_id, read_at=None).count()
 
 
-def list_for_user(user_id):
-    return Notification.query.filter_by(user_id=user_id).order_by(Notification.created_at.desc()).all()
+def list_for_user(user_id, limit=None):
+    query = Notification.query.filter_by(user_id=user_id).order_by(Notification.created_at.desc())
+    if limit is not None:
+        query = query.limit(limit)
+    return query.all()
 
 
 def mark_read(notification, user_id):

@@ -1,51 +1,70 @@
 {% extends "base.html" %}
 {% block title %}Đăng Tin Thuê Đồ{% endblock %}
+{% block page_class %}listing-form-page{% endblock %}
 {% block content %}
 
   <div class="page-intro"><span class="eyebrow">CHO THUÊ ĐỒ DÙNG CỦA BẠN</span><h1>Đăng tin cho thuê</h1><p class="muted">Mô tả rõ món đồ để các bạn sinh viên dễ tìm và đặt lịch.</p></div>
 
   <form class="listing-create-form" method="post" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <div class="field listing-upload">
-      <label>Tải lên hình ảnh món đồ</label>
-      <input type="file" name="images" accept="image/*" multiple>
-      <small>Hỗ trợ JPG, PNG, có thể chọn nhiều ảnh</small>
-    </div>
-
-    <div class="field listing-title">
-      <label>Tên vật phẩm cho thuê *</label>
-      <input type="text" name="title" required placeholder="VD: Máy ảnh Canon EOS 800D kèm lens">
-    </div>
-
-    <div class="field listing-category">
-      <label>Danh mục món đồ *</label>
-      <select name="category" required>
-        {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
-      </select>
-    </div>
-
-    <div class="field listing-district">
-      <label>Quận / huyện *</label>
-      <select name="district" required>
-        {% for d in districts %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
-      </select>
-    </div>
-
-    <div class="field-row listing-prices">
-      <div class="field">
-        <label>Giá ngày (VNĐ) *</label>
-        <input type="number" name="price_per_day" min="0" step="1000" required placeholder="120.000">
+    <section class="listing-form-section">
+      <div class="listing-form-section-heading">
+        <h2>Ảnh sản phẩm</h2>
+        <p class="muted">Ảnh rõ ràng giúp người thuê dễ đánh giá món đồ.</p>
       </div>
-      <div class="field">
-        <label>Giá cọc (VNĐ)</label>
-        <input type="number" name="deposit_amount" min="0" step="1000" placeholder="500.000">
+      <div class="field listing-upload">
+        <label>Tải lên hình ảnh món đồ</label>
+        <input type="file" name="images" accept="image/*" multiple>
+        <small>Hỗ trợ JPG, PNG, có thể chọn nhiều ảnh</small>
       </div>
-    </div>
+    </section>
 
-    <div class="field listing-description">
-      <label>Mô tả tình trạng & Giao nhận</label>
-      <textarea name="description" placeholder="Mô tả tình trạng đồ, nơi hẹn giao nhận tại Hà Nội..."></textarea>
-    </div>
+    <section class="listing-form-section listing-form-details">
+      <div class="listing-form-section-heading">
+        <h2>Thông tin món đồ</h2>
+        <p class="muted">Chọn danh mục và khu vực để tin đăng dễ được tìm thấy.</p>
+      </div>
+      <div class="field listing-title">
+        <label>Tên vật phẩm cho thuê *</label>
+        <input type="text" name="title" required placeholder="VD: Máy ảnh Canon EOS 800D kèm lens">
+      </div>
+
+      <div class="field listing-category">
+        <label>Danh mục món đồ *</label>
+        <select name="category" required>
+          {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+
+      <div class="field listing-district">
+        <label>Quận / huyện *</label>
+        <select name="district" required>
+          {% for d in districts %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+        </select>
+      </div>
+    </section>
+
+    <section class="listing-form-section listing-form-pricing">
+      <div class="listing-form-section-heading">
+        <h2>Giá thuê &amp; mô tả</h2>
+        <p class="muted">Nêu rõ giá thuê, tiền cọc và tình trạng món đồ.</p>
+      </div>
+      <div class="field-row listing-prices">
+        <div class="field">
+          <label>Giá ngày (VNĐ) *</label>
+          <input type="number" name="price_per_day" min="0" step="1000" required placeholder="120.000">
+        </div>
+        <div class="field">
+          <label>Giá cọc (VNĐ)</label>
+          <input type="number" name="deposit_amount" min="0" step="1000" placeholder="500.000">
+        </div>
+      </div>
+
+      <div class="field listing-description">
+        <label>Mô tả tình trạng &amp; Giao nhận</label>
+        <textarea name="description" placeholder="Mô tả tình trạng đồ, nơi hẹn giao nhận tại Hà Nội..."></textarea>
+      </div>
+    </section>
 
     <button class="btn listing-submit" type="submit">Đăng Tin Ngay</button>
   </form>

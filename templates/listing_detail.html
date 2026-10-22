@@ -1,12 +1,35 @@
 {% extends "base.html" %}
 {% block title %}{{ listing.title }}{% endblock %}
+{% block page_class %}listing-detail-shell{% endblock %}
 {% block content %}
 <div class="listing-detail-layout">
   <section class="detail-main">
-    {% if listing.cover_image %}<img class="detail-img" src="{{ url_for('static', filename=listing.cover_image) }}" alt="{{ listing.title }}">{% else %}<div class="detail-img detail-img-placeholder">Chưa có ảnh sản phẩm</div>{% endif %}
+    {% set image_fallbacks = {
+      'Máy ảnh & Thiết bị': 'camera',
+      'Xe cộ': 'vehicle',
+      'Trang phục': 'clothes',
+      'Sách & Giáo trình': 'books',
+      'Phụ kiện sự kiện': 'event',
+      'Dụng cụ thể thao': 'sport',
+      'Đồ gia dụng & Khác': 'home'
+    } %}
+    {% set fallback_image = 'demo/' ~ image_fallbacks.get(listing.category, 'home') ~ '.svg' %}
+    <img
+      class="detail-img"
+      src="{{ url_for('static', filename=listing.cover_image if listing.cover_image else fallback_image) }}"
+      data-fallback-src="{{ url_for('static', filename=fallback_image) }}"
+      alt="{{ listing.title }}"
+    >
     <div class="detail-heading"><div><span class="eyebrow">{{ listing.category }} · {{ listing.district }}</span><h1>{{ listing.title }}</h1></div><span class="detail-availability">● {{ 'Đang cho thuê' if listing.status == 'AVAILABLE' else ('Đang được thuê' if listing.status == 'RENTED' else 'Đang ẩn') }}</span></div>
     <div class="price-box"><div><div class="amount">{{ "{:,}".format(listing.price_per_day) }}đ</div><div class="unit">/ ngày</div></div><div class="deposit">Tiền cọc<br><b>{{ "{:,}".format(listing.deposit_amount) }}đ</b></div></div>
-    <div class="owner-row"><div class="avatar">{{ listing.owner.full_name[0] }}</div><div><div class="name">{{ listing.owner.full_name }}</div><div class="score">Trust Score {{ listing.owner.trust_score }} · {{ listing.owner.district }}</div></div></div>
+    <a class="owner-row owner-profile-link" href="{{ url_for('profiles.public_profile', user_id=listing.owner.id) }}" aria-label="Xem hồ sơ {{ listing.owner.full_name }}">
+      <div class="avatar">{{ listing.owner.full_name[0] }}</div>
+      <div>
+        <div class="name">{{ listing.owner.full_name }}</div>
+        <div class="score">Trust Score {{ listing.owner.trust_score }} · {{ listing.owner.district }}</div>
+      </div>
+      <span class="owner-profile-hint">Xem hồ sơ →</span>
+    </a>
     <div class="section"><h2>Thông tin mô tả</h2><p class="detail-description">{{ listing.description or "Chưa có mô tả chi tiết." }}</p></div>
   </section>
   <aside class="detail-sidebar">

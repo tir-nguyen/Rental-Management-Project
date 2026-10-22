@@ -1,6 +1,7 @@
 import hmac
 import os
 import secrets
+from urllib.parse import urlparse
 
 from flask import Flask, abort, request, session
 from flask_login import LoginManager, current_user
@@ -21,9 +22,16 @@ app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "static", "uploads")
 app.config["MAX_CONTENT_LENGTH"] = 40 * 1024 * 1024
 app.config["VNPAY_TMN_CODE"] = os.environ.get("VNPAY_TMN_CODE", "")
 app.config["VNPAY_HASH_SECRET"] = os.environ.get("VNPAY_HASH_SECRET", "")
-app.config["VNPAY_PAYMENT_URL"] = os.environ.get(
+vnpay_payment_url = os.environ.get(
     "VNPAY_PAYMENT_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
 )
+app.config["VNPAY_PAYMENT_URL"] = vnpay_payment_url
+return_confirmation_default = (
+    "1" if urlparse(vnpay_payment_url).hostname == "sandbox.vnpayment.vn" else "0"
+)
+app.config["VNPAY_CONFIRM_ON_RETURN"] = os.environ.get(
+    "VNPAY_CONFIRM_ON_RETURN", return_confirmation_default
+).strip().lower() in ("1", "true", "yes", "on")
 app.config["VNPAY_RETURN_URL"] = os.environ.get("VNPAY_RETURN_URL", "")
 
 db.init_app(app)
@@ -87,9 +95,10 @@ def inject_unread_notification_count():
     if current_user.is_authenticated:
         return {
             "unread_notification_count": notification_service.unread_count(current_user.id),
+            "notification_preview": notification_service.list_for_user(current_user.id, limit=5),
             "csrf_token": token,
         }
-    return {"unread_notification_count": 0, "csrf_token": token}
+    return {"unread_notification_count": 0, "notification_preview": [], "csrf_token": token}
 
 
 register_blueprints(app)

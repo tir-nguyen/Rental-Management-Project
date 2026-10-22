@@ -1,18 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Tin của tôi{% endblock %}
+{% block page_class %}my-listings-page{% endblock %}
 {% block content %}
 
   <div class="page-heading-row"><div><span class="eyebrow">BẢNG ĐIỀU KHIỂN NGƯỜI CHO THUÊ</span><h1>Tin của tôi</h1><p class="muted">Quản lý trạng thái và lịch cho thuê các món đồ.</p></div><a class="btn my-listing-add" href="{{ url_for('listings.create_listing') }}">＋ Đăng tin mới</a></div>
 
   {% if listings %}
   <div class="my-listing-grid">
+    {% set image_fallbacks = {
+      'Máy ảnh & Thiết bị': 'camera',
+      'Xe cộ': 'vehicle',
+      'Trang phục': 'clothes',
+      'Sách & Giáo trình': 'books',
+      'Phụ kiện sự kiện': 'event',
+      'Dụng cụ thể thao': 'sport',
+      'Đồ gia dụng & Khác': 'home'
+    } %}
     {% for l in listings %}
     <article class="my-listing-item">
       <a class="card" href="{{ url_for('listings.listing_detail', listing_id=l.id) }}">
         <div class="card-img">
-          {% if l.cover_image %}<img src="{{ url_for('static', filename=l.cover_image) }}" alt="{{ l.title }}">{% else %}<span>Chưa có ảnh</span>{% endif %}
+          {% set fallback_image = 'demo/' ~ image_fallbacks.get(l.category, 'home') ~ '.svg' %}
+          <img
+            src="{{ url_for('static', filename=l.cover_image if l.cover_image else fallback_image) }}"
+            data-fallback-src="{{ url_for('static', filename=fallback_image) }}"
+            alt="{{ l.title }}"
+            loading="lazy"
+          >
         </div>
-        <div class="card-body"><div class="card-title">{{ l.title }}</div><div class="card-price">{{ "{:,}".format(l.price_per_day) }}đ <small>/ ngày</small></div><span class="badge badge-owner">{{ l.status }}</span></div>
+        <div class="card-body">
+          <div class="card-title">{{ l.title }}</div>
+          <div class="card-price">{{ "{:,}".format(l.price_per_day) }}đ <small>/ ngày</small></div>
+          <div class="card-meta"><span>{{ l.district }}</span><span>Cọc {{ "{:,}".format(l.deposit_amount) }}đ</span></div>
+          <span class="badge badge-owner">{{ l.status }}</span>
+        </div>
       </a>
       <div class="my-listing-tools">
       <form method="post" action="{{ url_for('listings.toggle_listing_visibility', listing_id=l.id) }}">
@@ -37,7 +58,12 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty-state">Bạn chưa đăng tin nào. <br><a class="btn empty-state-action" href="{{ url_for('listings.create_listing') }}">Đăng tin đầu tiên</a></div>
+  <div class="empty-state listing-empty-state">
+    <span class="listing-empty-icon" aria-hidden="true">＋</span>
+    <h2>Bạn chưa có tin đăng nào</h2>
+    <p>Đăng món đồ bạn muốn cho thuê để các bạn sinh viên dễ dàng tìm thấy.</p>
+    <a class="btn empty-state-action" href="{{ url_for('listings.create_listing') }}">Đăng tin đầu tiên</a>
+  </div>
   {% endif %}
 
 {% endblock %}

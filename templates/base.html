@@ -13,14 +13,50 @@
       <a href="{{ url_for('listings.index') }}" class="brand">Cho<span>Thuê</span></a>
       {% if current_user.is_authenticated %}
       <div class="header-actions">
-        <div class="header-profile" aria-label="Tài khoản {{ current_user.full_name }}">
+        <a class="header-profile" href="{{ url_for('profiles.my_profile') }}" aria-label="Hồ sơ của {{ current_user.full_name }}">
           <span class="profile-avatar">{{ current_user.full_name.strip()[:1]|upper }}</span>
           <span class="profile-name">{{ current_user.full_name }}</span>
-        </div>
-        <a class="notification-button" href="{{ url_for('listings.notifications') }}" aria-label="Thông báo{% if unread_notification_count %}, {{ unread_notification_count }} chưa đọc{% endif %}" title="Thông báo">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
-          {% if unread_notification_count %}<span class="notification-count">{{ '99+' if unread_notification_count > 99 else unread_notification_count }}</span>{% endif %}
         </a>
+        <div class="notification-menu-wrap">
+          <button
+            class="notification-button"
+            type="button"
+            data-notification-toggle
+            aria-label="Thông báo{% if unread_notification_count %}, {{ unread_notification_count }} chưa đọc{% endif %}"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="notification-menu"
+            title="Thông báo"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+            {% if unread_notification_count %}<span class="notification-count">{{ '99+' if unread_notification_count > 99 else unread_notification_count }}</span>{% endif %}
+          </button>
+          <div class="notification-menu" id="notification-menu" data-notification-menu hidden>
+            <div class="notification-menu-heading">
+              <b>Thông báo</b>
+              {% if unread_notification_count %}<span>{{ unread_notification_count }} chưa đọc</span>{% endif %}
+            </div>
+            {% if notification_preview %}
+              <div class="notification-preview-list">
+                {% for item in notification_preview %}
+                <form method="post" action="{{ url_for('listings.mark_notification_read', notification_id=item.id) }}" class="notification-preview-item {{ 'is-read' if item.read_at else 'is-unread' }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                  <button type="submit" class="notification-preview-action">
+                    <span class="notification-preview-dot" aria-hidden="true"></span>
+                    <span class="notification-preview-content">
+                      <span class="notification-preview-message">{{ item.message }}</span>
+                      <time datetime="{{ item.created_at.isoformat() }}">{{ item.created_at.strftime('%d/%m/%Y %H:%M') }}</time>
+                    </span>
+                  </button>
+                </form>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="notification-menu-empty">Bạn chưa có thông báo nào.</p>
+            {% endif %}
+            <a class="notification-menu-footer" href="{{ url_for('listings.notifications') }}">Xem tất cả thông báo</a>
+          </div>
+        </div>
         <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <button class="logout-button" type="submit"><span aria-hidden="true">↪</span> Đăng xuất</button>
@@ -57,7 +93,7 @@
   </nav>
   {% endif %}
 
-  <main class="page">
+  <main class="page {% block page_class %}{% endblock %}">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="flash-stack">

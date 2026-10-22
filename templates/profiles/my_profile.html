@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Hồ sơ của tôi{% endblock %}
+{% block page_class %}my-profile-page{% endblock %}
+{% block content %}
+  <header class="profile-page-heading">
+    <div>
+      <span class="eyebrow">TÀI KHOẢN CỦA BẠN</span>
+      <h1>Hồ sơ của tôi</h1>
+      <p class="muted">Thông tin này được dùng để quản lý tài khoản SẵnThuê.</p>
+    </div>
+    <a class="btn secondary profile-public-link" href="{{ url_for('profiles.public_profile', user_id=current_user.id) }}">Xem hồ sơ công khai</a>
+  </header>
+
+  <div class="my-profile-layout">
+    <section class="profile-summary-card">
+      <div class="profile-large-avatar" aria-hidden="true">{{ current_user.full_name.strip()[:1]|upper }}</div>
+      <h2>{{ current_user.full_name }}</h2>
+      {% if current_user.is_verified %}
+      <span class="profile-verified-badge">Đã xác minh</span>
+      {% else %}
+      <span class="profile-unverified-badge">Chưa xác minh đầy đủ</span>
+      {% endif %}
+      <p class="muted">Tham gia từ {{ current_user.created_at.strftime('%d/%m/%Y') }}</p>
+      {% if current_user.kyc_status != "APPROVED" %}
+      <a class="profile-verify-link" href="{{ url_for('auth.verify_account') }}">Cập nhật xác minh tài khoản →</a>
+      {% endif %}
+    </section>
+
+    <section class="profile-edit-card">
+      <div class="profile-section-heading">
+        <h2>Thông tin cá nhân</h2>
+        <p class="muted">Email và số điện thoại đang xác minh không thể đổi tại đây.</p>
+      </div>
+      <form method="post" action="{{ url_for('profiles.my_profile') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <label for="profile-full-name">Họ và tên</label>
+          <input
+            id="profile-full-name"
+            type="text"
+            name="full_name"
+            maxlength="120"
+            autocomplete="name"
+            required
+            value="{{ form_values.get('full_name', current_user.full_name) if form_values else current_user.full_name }}"
+          >
+        </div>
+        <div class="field">
+          <label for="profile-email">Email tài khoản</label>
+          <input id="profile-email" type="email" value="{{ current_user.school_email }}" readonly>
+          <small>Email đang được dùng để đăng nhập và xác minh tài khoản.</small>
+        </div>
+        <div class="field">
+          <label for="profile-phone">Số điện thoại</label>
+          <input id="profile-phone" type="tel" value="{{ current_user.phone_number }}" readonly>
+          <small>Để bảo vệ xác minh số điện thoại, vui lòng liên hệ hỗ trợ nếu cần thay đổi.</small>
+        </div>
+        <div class="field">
+          <label for="profile-district">Khu vực hoạt động</label>
+          {% set selected_district = form_values.get('district', current_user.district or '') if form_values else (current_user.district or '') %}
+          <select id="profile-district" name="district">
+            <option value="">Chưa chọn khu vực</option>
+            {% for district in districts %}
+            <option value="{{ district }}" {{ 'selected' if selected_district == district else '' }}>{{ district }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn profile-save-button" type="submit">Lưu thay đổi</button>
+      </form>
+    </section>
+  </div>
+{% endblock %}

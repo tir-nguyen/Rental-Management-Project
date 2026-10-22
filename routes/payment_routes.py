@@ -32,7 +32,7 @@ def vnpay_return():
     params = request.args.to_dict(flat=True)
     has_duplicates = any(len(request.args.getlist(key)) != 1 for key in request.args.keys())
     try:
-        attempt = payment_service.get_verified_return(params, has_duplicates)
+        attempt = payment_service.confirm_verified_return(params, has_duplicates)
     except PaymentConfigurationError:
         current_app.logger.error("VNPay return received while payment credentials are not configured.")
         attempt = None
