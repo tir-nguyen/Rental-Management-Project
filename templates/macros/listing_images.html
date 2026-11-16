@@ -1,0 +1,14 @@
+{% macro listing_image_src(listing, fallback_image) -%}
+  {%- set product_images = {
+    'Quạt tích điện mini để bàn': 'demo/products/desk-fan.jpg',
+    'Bàn gấp học tập kèm ghế': 'demo/products/folding-chair.jpg',
+    'Máy lọc không khí phòng trọ': 'demo/products/air-purifier.jpg',
+    'Bóng đá size 5 và bơm mini': 'demo/products/soccer-ball.jpg',
+    'Thảm yoga và gạch tập yoga': 'demo/products/yoga-mat.jpg',
+    'Bộ vợt pickleball cho người mới': 'demo/products/pickleball-set.jpg',
+    'Vợt cầu lông Yonex kèm bao': 'demo/products/badminton-racket.jpg'
+  } -%}
+  {%- set current_image = listing.cover_image or '' -%}
+  {%- set image_path = current_image if current_image and not current_image.startswith('demo/') else product_images.get(listing.title, current_image or fallback_image) -%}
+  {{ url_for('static', filename=image_path) }}
+{%- endmacro %}

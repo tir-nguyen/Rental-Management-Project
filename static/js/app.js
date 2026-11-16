@@ -14,6 +14,34 @@ document.addEventListener("error", (event) => {
   }
 }, true);
 
+document.addEventListener("change", (event) => {
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement) || !input.matches("[data-image-preview-input]")) return;
+
+  const preview = document.getElementById(input.dataset.previewTarget);
+  if (!preview) return;
+
+  if (!input.dataset.initialPreview) {
+    input.dataset.initialPreview = preview.innerHTML;
+  }
+  for (const image of preview.querySelectorAll('img[src^="blob:"]')) {
+    URL.revokeObjectURL(image.src);
+  }
+
+  if (!input.files?.length) {
+    preview.innerHTML = input.dataset.initialPreview;
+    return;
+  }
+
+  preview.replaceChildren();
+  for (const file of input.files) {
+    const image = document.createElement("img");
+    image.src = URL.createObjectURL(file);
+    image.alt = `Ảnh thay thế: ${file.name}`;
+    preview.append(image);
+  }
+});
+
 document.addEventListener("click", (event) => {
   const notificationToggle = event.target.closest("[data-notification-toggle]");
   const notificationMenu = document.querySelector("[data-notification-menu]");
@@ -31,17 +59,18 @@ document.addEventListener("click", (event) => {
 
   const previewButton = event.target.closest("[data-image-preview]");
   if (previewButton) {
-    const dialog = document.getElementById("admin-image-dialog");
-    const previewImage = document.getElementById("admin-image-dialog-img");
+    const dialog = document.getElementById("image-viewer-dialog");
+    const previewImage = document.getElementById("image-viewer-dialog-img");
     if (dialog && previewImage && !dialog.open) {
       previewImage.src = previewButton.dataset.imagePreview;
       previewImage.alt = previewButton.dataset.imageAlt || "";
       dialog.showModal();
+      event.preventDefault();
     }
     return;
   }
 
-  const imageDialog = document.getElementById("admin-image-dialog");
+  const imageDialog = document.getElementById("image-viewer-dialog");
   if (imageDialog && event.target === imageDialog) {
     imageDialog.close();
     return;

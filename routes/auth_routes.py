@@ -45,7 +45,9 @@ def verify_account():
             flash("Mã OTP không đúng.", "error")
 
         try:
-            if auth_service.submit_kyc_card(current_user, current_app.config["UPLOAD_FOLDER"], card_file):
+            if auth_service.submit_kyc_card(
+                current_user, current_app.config["PRIVATE_UPLOAD_FOLDER"], card_file
+            ):
                 flash("Đã gửi ảnh thẻ sinh viên, chờ Admin duyệt.", "info")
         except (ValueError, AuthError) as e:
             flash(str(e), "error")

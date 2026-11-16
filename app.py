@@ -1,25 +1,38 @@
 import hmac
 import os
 import secrets
+import sys
 from urllib.parse import urlparse
 
 from flask import Flask, abort, request, session
 from flask_login import LoginManager, current_user
 from dotenv import load_dotenv
-from sqlalchemy import inspect, text
+from flask_migrate import Migrate
 
-from models import db, User, Booking, AvailabilityBlock
-from services import booking_service, notification_service, seed_service
+from models import db, HandoverEvidence, ListingImage, User
+from services import booking_service, notification_service
 from routes import register_blueprints
+from database_config import (
+    get_database_uri,
+    get_rental_test_postgresql_uri,
+    is_flask_migrate_command,
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or os.urandom(32)
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(BASE_DIR, 'rental.db')}"
+if is_flask_migrate_command(sys.argv):
+    app.config["SQLALCHEMY_DATABASE_URI"] = get_rental_test_postgresql_uri()
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = get_database_uri(BASE_DIR)
 app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "static", "uploads")
+app.config["PRIVATE_UPLOAD_FOLDER"] = os.path.join(
+    app.instance_path, "private_uploads"
+)
 app.config["MAX_CONTENT_LENGTH"] = 40 * 1024 * 1024
+
 app.config["VNPAY_TMN_CODE"] = os.environ.get("VNPAY_TMN_CODE", "")
 app.config["VNPAY_HASH_SECRET"] = os.environ.get("VNPAY_HASH_SECRET", "")
 vnpay_payment_url = os.environ.get(
@@ -35,31 +48,7 @@ app.config["VNPAY_CONFIRM_ON_RETURN"] = os.environ.get(
 app.config["VNPAY_RETURN_URL"] = os.environ.get("VNPAY_RETURN_URL", "")
 
 db.init_app(app)
-_schema_ready = False
-
-
-def ensure_database_schema():
-    global _schema_ready
-    if not _schema_ready:
-        db.create_all()
-        columns = {column["name"] for column in inspect(db.engine).get_columns("bookings")}
-        if "approved_at" not in columns:
-            db.session.execute(text("ALTER TABLE bookings ADD COLUMN approved_at DATETIME"))
-        db.session.execute(text(
-            "UPDATE bookings SET approved_at = created_at "
-            "WHERE status IN ('APPROVED', 'DEPOSIT_WAITING') AND approved_at IS NULL"
-        ))
-        active_bookings = Booking.query.filter(Booking.status.in_(
-            ("PENDING", "APPROVED", "DEPOSIT_WAITING", "READY_FOR_PICKUP", "IN_USE", "RETURN_PENDING", "DISPUTED")
-        )).all()
-        for booking in active_bookings:
-            if not AvailabilityBlock.query.filter_by(booking_id=booking.id).first():
-                db.session.add(AvailabilityBlock(
-                    listing_id=booking.listing_id, start_date=booking.start_date,
-                    end_date=booking.end_date, reason="BOOKED", booking_id=booking.id,
-                ))
-        db.session.commit()
-        _schema_ready = True
+Migrate(app, db, compare_type=True)
 
 
 @app.before_request
@@ -73,9 +62,24 @@ def protect_post_requests_from_csrf():
 
 @app.before_request
 def prepare_database_and_expire_bookings():
-    ensure_database_schema()
     if request.path.startswith(("/don-hang", "/san-pham/")):
         booking_service.expire_stale_bookings()
+
+
+@app.before_request
+def protect_private_static_uploads():
+    if request.endpoint != "static":
+        return
+    filename = request.view_args.get("filename", "") if request.view_args else ""
+    if not filename.startswith("uploads/"):
+        return
+    if (
+        User.query.filter_by(kyc_card_image=filename).first()
+        or HandoverEvidence.query.filter_by(media_url=filename).first()
+    ):
+        abort(404)
+    if not ListingImage.query.filter_by(image_url=filename).first():
+        abort(404)
 
 
 login_manager = LoginManager()
@@ -86,7 +90,7 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 
 @app.context_processor
@@ -104,36 +108,12 @@ def inject_unread_notification_count():
 register_blueprints(app)
 
 
-@app.cli.command("init-db")
-def init_db():
-    """Initialize the local database schema."""
-    ensure_database_schema()
-    print("Database initialized.")
-
-
-@app.cli.command("seed")
-def seed():
-    """Create the initial demo accounts and listing if missing."""
-    ensure_database_schema()
-    seed_service.seed_base_data()
-
-
-@app.cli.command("seed-demo-data")
-def seed_demo_data():
-    """Add repeatable demo accounts and listings without replacing user data."""
-    ensure_database_schema()
-    seed_service.seed_demo_data()
-
-
 @app.cli.command("expire-bookings")
 def expire_bookings_command():
     """Expire stale requests; suitable for a scheduled task."""
-    ensure_database_schema()
     count = booking_service.expire_stale_bookings()
     print(f"Expired {count} booking(s).")
 
 
 if __name__ == "__main__":
-    with app.app_context():
-        ensure_database_schema()
     app.run(debug=os.environ.get("FLASK_DEBUG") == "1", port=5000)

@@ -1,11 +1,19 @@
 """Nghiệp vụ tin đăng: tìm kiếm/lọc, đăng tin, quản lý ảnh."""
 from datetime import datetime
-from models import db, Listing, ListingImage, AvailabilityBlock, CATEGORIES, DISTRICTS
+from models import (
+    db, Booking, Listing, ListingImage, AvailabilityBlock, CATEGORIES, DISTRICTS,
+)
 from services.upload_service import save_upload, UploadError
 
 
 class ListingError(ValueError):
     pass
+
+
+ACTIVE_BOOKING_STATUSES = (
+    "PENDING", "APPROVED", "DEPOSIT_WAITING", "READY_FOR_PICKUP",
+    "IN_USE", "RETURN_PENDING", "DISPUTED",
+)
 
 
 def search_listings(q="", district="", category="", min_price=None, max_price=None,
@@ -36,6 +44,13 @@ def get_listing_or_404(listing_id):
 
 def list_owned(owner_id):
     return Listing.query.filter_by(owner_id=owner_id).order_by(Listing.created_at.desc()).all()
+
+
+def has_active_bookings(listing_id):
+    return Booking.query.filter(
+        Booking.listing_id == listing_id,
+        Booking.status.in_(ACTIVE_BOOKING_STATUSES),
+    ).first() is not None
 
 
 def block_dates(listing, owner_id, start_date, end_date):
@@ -85,15 +100,20 @@ def create_listing(owner_id, form, files, upload_folder):
         raise ListingError("Giá thuê và tiền cọc phải là số nguyên hợp lệ.") from exc
     if not title:
         raise ListingError("Vui lòng nhập tên món đồ.")
+    if len(title) > 160:
+        raise ListingError("Tên món đồ không được dài quá 160 ký tự.")
     if price <= 0 or deposit < 0:
         raise ListingError("Giá thuê phải lớn hơn 0 và tiền cọc không được âm.")
     if form.get("category") not in CATEGORIES or form.get("district") not in DISTRICTS:
         raise ListingError("Danh mục hoặc khu vực không hợp lệ.")
+    description = (form.get("description") or "").strip()
+    if len(description) > 5000:
+        raise ListingError("Mô tả không được dài quá 5.000 ký tự.")
 
     listing = Listing(
         owner_id=owner_id,
         title=title,
-        description=form.get("description", "").strip(),
+        description=description,
         category=form.get("category"),
         district=form.get("district"),
         price_per_day=price,
@@ -111,5 +131,53 @@ def create_listing(owner_id, form, files, upload_folder):
         db.session.rollback()
         raise ListingError(str(exc)) from exc
 
+    db.session.commit()
+    return listing
+
+
+def update_listing(listing, owner_id, form, files, upload_folder):
+    if listing.owner_id != owner_id:
+        raise ListingError("Bạn không có quyền chỉnh sửa tin này.")
+    if has_active_bookings(listing.id):
+        raise ListingError("Không thể chỉnh sửa tin khi đang có đơn thuê chưa hoàn tất.")
+
+    title = (form.get("title") or "").strip()
+    description = (form.get("description") or "").strip()
+    try:
+        price = int(form.get("price_per_day") or 0)
+        deposit = int(form.get("deposit_amount") or 0)
+    except (TypeError, ValueError) as exc:
+        raise ListingError("Giá thuê và tiền cọc phải là số nguyên hợp lệ.") from exc
+
+    if not title:
+        raise ListingError("Vui lòng nhập tên món đồ.")
+    if len(title) > 160:
+        raise ListingError("Tên món đồ không được dài quá 160 ký tự.")
+    if len(description) > 5000:
+        raise ListingError("Mô tả không được dài quá 5.000 ký tự.")
+    if price <= 0 or deposit < 0:
+        raise ListingError("Giá thuê phải lớn hơn 0 và tiền cọc không được âm.")
+    if form.get("category") not in CATEGORIES or form.get("district") not in DISTRICTS:
+        raise ListingError("Danh mục hoặc khu vực không hợp lệ.")
+
+    new_images = []
+    try:
+        for file in files.getlist("images"):
+            image_url = save_upload(file, upload_folder)
+            if image_url:
+                new_images.append(ListingImage(listing_id=listing.id, image_url=image_url))
+    except UploadError as exc:
+        db.session.rollback()
+        raise ListingError(str(exc)) from exc
+
+    listing.title = title
+    listing.description = description
+    listing.category = form.get("category")
+    listing.district = form.get("district")
+    listing.price_per_day = price
+    listing.deposit_amount = deposit
+    if new_images:
+        listing.images.clear()
+        listing.images.extend(new_images)
     db.session.commit()
     return listing

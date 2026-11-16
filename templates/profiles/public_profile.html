@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/listing_images.html" import listing_image_src %}
 {% block title %}{{ profile.display_name }} · Hồ sơ{% endblock %}
 {% block page_class %}public-profile-page{% endblock %}
 {% block content %}
@@ -54,7 +55,7 @@
         <a class="card" href="{{ url_for('listings.listing_detail', listing_id=listing.id) }}">
           <div class="card-img">
             <img
-              src="{{ url_for('static', filename=listing.cover_image if listing.cover_image else fallback_image) }}"
+              src="{{ listing_image_src(listing, fallback_image) }}"
               data-fallback-src="{{ url_for('static', filename=fallback_image) }}"
               alt="{{ listing.title }}"
               loading="lazy"

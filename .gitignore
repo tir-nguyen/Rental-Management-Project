@@ -12,9 +12,10 @@ __pycache__/
 .env.*
 !.env.example
 
-# Local database
-/rental.db
+# Local databases and migration backups
+/*.db
 
 # User-uploaded files
 /static/uploads/*
 !/static/uploads/.gitkeep
+/instance/private_uploads/

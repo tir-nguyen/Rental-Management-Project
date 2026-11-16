@@ -5,9 +5,10 @@ from datetime import datetime
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from models import Booking, PaymentAttempt
+from models import Booking, HandoverEvidence, PaymentAttempt
 from services import booking_service, listing_service, review_service
 from services.booking_service import BookingError
+from services.upload_service import send_private_upload
 
 bookings_bp = Blueprint("bookings", __name__)
 
@@ -52,6 +53,21 @@ def booking_detail(booking_id):
         already_reviewed=already_reviewed, latest_payment=latest_payment,
     )
 
+
+@login_required
+def evidence_media(booking_id, evidence_id):
+    evidence = HandoverEvidence.query.get_or_404(evidence_id)
+    if evidence.booking_id != booking_id:
+        abort(404)
+    booking = evidence.booking
+    if not current_user.is_admin and current_user.id not in (
+        booking.renter_id,
+        booking.lender_id,
+    ):
+        abort(403)
+    return send_private_upload(evidence.media_url)
+
+
 @login_required
 def respond_booking(booking_id):
     booking = Booking.query.get_or_404(booking_id)
@@ -73,7 +89,7 @@ def checkin(booking_id):
     try:
         booking, both_confirmed = booking_service.checkin(
             booking, current_user, request.form.get("note", ""),
-            request.files.getlist("media"), current_app.config["UPLOAD_FOLDER"],
+            request.files.getlist("media"), current_app.config["PRIVATE_UPLOAD_FOLDER"],
         )
     except BookingError as e:
         flash(str(e), "error")
@@ -91,7 +107,7 @@ def checkout(booking_id):
     try:
         booking_service.checkout(
             booking, current_user, request.form.get("note", ""),
-            request.files.getlist("media"), current_app.config["UPLOAD_FOLDER"],
+            request.files.getlist("media"), current_app.config["PRIVATE_UPLOAD_FOLDER"],
         )
     except BookingError as e:
         flash(str(e), "error")
@@ -161,6 +177,10 @@ bookings_bp.add_url_rule("/don-hang", endpoint="booking_list", view_func=booking
 bookings_bp.add_url_rule(
     "/don-hang/<int:booking_id>", endpoint="booking_detail",
     view_func=booking_detail, methods=["GET"],
+)
+bookings_bp.add_url_rule(
+    "/don-hang/<int:booking_id>/evidence/<int:evidence_id>",
+    endpoint="evidence_media", view_func=evidence_media, methods=["GET"],
 )
 bookings_bp.add_url_rule(
     "/don-hang/<int:booking_id>/phan-hoi", endpoint="respond_booking",

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/listing_images.html" import listing_image_src %}
 {% block title %}{{ listing.title }}{% endblock %}
 {% block page_class %}listing-detail-shell{% endblock %}
 {% block content %}
@@ -14,12 +15,20 @@
       'Đồ gia dụng & Khác': 'home'
     } %}
     {% set fallback_image = 'demo/' ~ image_fallbacks.get(listing.category, 'home') ~ '.svg' %}
-    <img
-      class="detail-img"
-      src="{{ url_for('static', filename=listing.cover_image if listing.cover_image else fallback_image) }}"
-      data-fallback-src="{{ url_for('static', filename=fallback_image) }}"
-      alt="{{ listing.title }}"
+    <button
+      class="detail-image-preview"
+      type="button"
+      data-image-preview="{{ listing_image_src(listing, fallback_image) }}"
+      data-image-alt="{{ listing.title }}"
+      aria-label="Xem ảnh đầy đủ: {{ listing.title }}"
     >
+      <img
+        class="detail-img"
+        src="{{ listing_image_src(listing, fallback_image) }}"
+        data-fallback-src="{{ url_for('static', filename=fallback_image) }}"
+        alt="{{ listing.title }}"
+      >
+    </button>
     <div class="detail-heading"><div><span class="eyebrow">{{ listing.category }} · {{ listing.district }}</span><h1>{{ listing.title }}</h1></div><span class="detail-availability">● {{ 'Đang cho thuê' if listing.status == 'AVAILABLE' else ('Đang được thuê' if listing.status == 'RENTED' else 'Đang ẩn') }}</span></div>
     <div class="price-box"><div><div class="amount">{{ "{:,}".format(listing.price_per_day) }}đ</div><div class="unit">/ ngày</div></div><div class="deposit">Tiền cọc<br><b>{{ "{:,}".format(listing.deposit_amount) }}đ</b></div></div>
     <a class="owner-row owner-profile-link" href="{{ url_for('profiles.public_profile', user_id=listing.owner.id) }}" aria-label="Xem hồ sơ {{ listing.owner.full_name }}">
@@ -44,7 +53,7 @@
         <button class="btn" type="submit">Gửi yêu cầu thuê</button>
       </form>
       {% elif not current_user.is_authenticated %}<p class="muted">Đăng nhập để chọn lịch và gửi yêu cầu thuê.</p><a class="btn" href="{{ url_for('auth.login') }}">Đăng nhập để thuê</a>
-      {% else %}<p class="muted">Đây là tin đăng của bạn.</p><a class="btn secondary" href="{{ url_for('listings.my_listings') }}">Quản lý tin đăng</a>{% endif %}
+      {% else %}<p class="muted">Đây là tin đăng của bạn.</p><a class="btn secondary" href="{{ url_for('listings.edit_listing', listing_id=listing.id) }}">Chỉnh sửa tin đăng</a>{% endif %}
       <div class="rental-safe">✓ Không thu phí trước khi yêu cầu được xác nhận</div>
     </div>
   </aside>

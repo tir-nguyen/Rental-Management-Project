@@ -107,5 +107,12 @@
     {% block content %}{% endblock %}
   </main>
 
+  <dialog class="image-viewer-dialog" id="image-viewer-dialog" aria-label="Xem ảnh kích thước đầy đủ">
+    <form method="dialog">
+      <button class="admin-image-close" type="submit" aria-label="Đóng ảnh">×</button>
+    </form>
+    <img id="image-viewer-dialog-img" alt="">
+  </dialog>
+
 </body>
 </html>

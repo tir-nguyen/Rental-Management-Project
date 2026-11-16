@@ -27,11 +27,11 @@
         <button
           class="admin-kyc-preview"
           type="button"
-          data-image-preview="{{ url_for('static', filename=u.kyc_card_image) }}"
+          data-image-preview="{{ url_for('admin.admin_kyc_image', user_id=u.id) }}"
           data-image-alt="Thẻ sinh viên của {{ u.full_name }}"
           aria-label="Phóng to thẻ sinh viên của {{ u.full_name }}"
         >
-          <img class="admin-kyc-image" src="{{ url_for('static', filename=u.kyc_card_image) }}" alt="" loading="lazy">
+          <img class="admin-kyc-image" src="{{ url_for('admin.admin_kyc_image', user_id=u.id) }}" alt="" loading="lazy">
           <span>Nhấn để xem ảnh lớn</span>
         </button>
         {% endif %}
@@ -49,13 +49,6 @@
       <p class="muted">Không có hồ sơ KYC chờ duyệt.</p>
     {% endif %}
   </div>
-
-  <dialog class="admin-image-dialog" id="admin-image-dialog" aria-label="Xem ảnh">
-    <form method="dialog">
-      <button class="admin-image-close" type="submit" aria-label="Đóng ảnh">×</button>
-    </form>
-    <img id="admin-image-dialog-img" alt="">
-  </dialog>
 
   <div class="divider"></div>
 
@@ -80,10 +73,10 @@
             {% if evidence.media_url %}
               {% if evidence.media_url.lower().endswith(('.mp4', '.mov', '.webm')) %}
                 <video class="evidence-media evidence-video" controls>
-                  <source src="{{ url_for('static', filename=evidence.media_url) }}">
+                  <source src="{{ url_for('bookings.evidence_media', booking_id=d.booking.id, evidence_id=evidence.id) }}">
                 </video>
               {% else %}
-                <img class="evidence-media evidence-image" src="{{ url_for('static', filename=evidence.media_url) }}" alt="Bằng chứng {{ evidence.type }}">
+                <img class="evidence-media evidence-image" src="{{ url_for('bookings.evidence_media', booking_id=d.booking.id, evidence_id=evidence.id) }}" alt="Bằng chứng {{ evidence.type }}">
               {% endif %}
             {% endif %}
           </div>

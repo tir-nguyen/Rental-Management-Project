@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/listing_images.html" import listing_image_src %}
 {% block title %}Tin của tôi{% endblock %}
 {% block page_class %}my-listings-page{% endblock %}
 {% block content %}
@@ -22,7 +23,7 @@
         <div class="card-img">
           {% set fallback_image = 'demo/' ~ image_fallbacks.get(l.category, 'home') ~ '.svg' %}
           <img
-            src="{{ url_for('static', filename=l.cover_image if l.cover_image else fallback_image) }}"
+            src="{{ listing_image_src(l, fallback_image) }}"
             data-fallback-src="{{ url_for('static', filename=fallback_image) }}"
             alt="{{ l.title }}"
             loading="lazy"
@@ -36,6 +37,7 @@
         </div>
       </a>
       <div class="my-listing-tools">
+      <a class="btn secondary" href="{{ url_for('listings.edit_listing', listing_id=l.id) }}">Chỉnh sửa tin</a>
       <form method="post" action="{{ url_for('listings.toggle_listing_visibility', listing_id=l.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button class="btn secondary" type="submit">{{ 'Hiện tin' if l.status == 'HIDDEN' else 'Ẩn tin' }}</button>

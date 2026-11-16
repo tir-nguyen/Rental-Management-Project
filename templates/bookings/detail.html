@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/listing_images.html" import listing_image_src %}
 {% block title %}Đơn #{{ booking.id }}{% endblock %}
 {% block page_class %}booking-detail-shell{% endblock %}
 {% block content %}
@@ -39,7 +40,7 @@
       {% set fallback_image = 'demo/' ~ image_fallbacks.get(booking.listing.category, 'home') ~ '.svg' %}
       <div class="booking-product-img">
         <img
-          src="{{ url_for('static', filename=booking.listing.cover_image if booking.listing.cover_image else fallback_image) }}"
+          src="{{ listing_image_src(booking.listing, fallback_image) }}"
           data-fallback-src="{{ url_for('static', filename=fallback_image) }}"
           alt="{{ booking.listing.title }}"
         >

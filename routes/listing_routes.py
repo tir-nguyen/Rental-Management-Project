@@ -67,11 +67,46 @@ def create_listing():
             )
         except listing_service.ListingError as e:
             flash(str(e), "error")
-            return render_template("listing_form.html", districts=DISTRICTS, categories=CATEGORIES)
+            return render_template(
+                "listing_form.html", districts=DISTRICTS, categories=CATEGORIES,
+                listing=None, form_data=request.form, has_active_bookings=False,
+            )
         flash("Đăng tin thành công!", "success")
         return redirect(url_for("listings.listing_detail", listing_id=listing.id))
 
-    return render_template("listing_form.html", districts=DISTRICTS, categories=CATEGORIES)
+    return render_template(
+        "listing_form.html", districts=DISTRICTS, categories=CATEGORIES,
+        listing=None, form_data=None, has_active_bookings=False,
+    )
+
+
+@login_required
+def edit_listing(listing_id):
+    listing = listing_service.get_listing_or_404(listing_id)
+    if listing.owner_id != current_user.id:
+        abort(404)
+
+    has_active_bookings = listing_service.has_active_bookings(listing.id)
+    if request.method == "POST":
+        try:
+            listing = listing_service.update_listing(
+                listing, current_user.id, request.form, request.files,
+                current_app.config["UPLOAD_FOLDER"],
+            )
+        except listing_service.ListingError as e:
+            flash(str(e), "error")
+            return render_template(
+                "listing_form.html", districts=DISTRICTS, categories=CATEGORIES,
+                listing=listing, form_data=request.form,
+                has_active_bookings=has_active_bookings,
+            )
+        flash("Đã cập nhật tin đăng.", "success")
+        return redirect(url_for("listings.listing_detail", listing_id=listing.id))
+
+    return render_template(
+        "listing_form.html", districts=DISTRICTS, categories=CATEGORIES,
+        listing=listing, form_data=None, has_active_bookings=has_active_bookings,
+    )
 
 @login_required
 def my_listings():
@@ -126,6 +161,10 @@ def remove_listing_block(block_id):
 listings_bp.add_url_rule("/", endpoint="index", view_func=index, methods=["GET"])
 listings_bp.add_url_rule("/san-pham/<int:listing_id>", endpoint="listing_detail", view_func=listing_detail, methods=["GET"])
 listings_bp.add_url_rule("/dang-tin", endpoint="create_listing", view_func=create_listing, methods=["GET", "POST"])
+listings_bp.add_url_rule(
+    "/san-pham/<int:listing_id>/sua", endpoint="edit_listing",
+    view_func=edit_listing, methods=["GET", "POST"],
+)
 listings_bp.add_url_rule("/tin-cua-toi", endpoint="my_listings", view_func=my_listings, methods=["GET"])
 listings_bp.add_url_rule("/thong-bao", endpoint="notifications", view_func=notifications, methods=["GET"])
 listings_bp.add_url_rule(
