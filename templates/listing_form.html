@@ -21,7 +21,10 @@
       <div class="listing-edit-images" id="listing-image-preview">
         {% if listing %}
         {% for image in listing.images %}
-        <img src="{{ url_for('static', filename=image.image_url) }}" alt="Ảnh hiện tại {{ loop.index }}" loading="lazy">
+        <img
+  src="{{ image.image_url if image.image_url.startswith('https://') or image.image_url.startswith('http://') else url_for('static', filename=image.image_url) }}"
+  alt="Ảnh hiện tại {{ loop.index }}"
+  loading="lazy">
         {% endfor %}
         {% endif %}
       </div>

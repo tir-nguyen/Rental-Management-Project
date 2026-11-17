@@ -1,6 +1,8 @@
 """Lưu file người dùng tải lên (ảnh thẻ SV, ảnh listing, ảnh bằng chứng check-in/out)."""
 import os
 import uuid
+import cloudinary
+import cloudinary.uploader
 from pathlib import Path
 
 from flask import abort, current_app, send_from_directory
@@ -31,6 +33,55 @@ def save_upload(file_storage, upload_folder, allowed_extensions=None):
     file_storage.save(path)
     return f"uploads/{unique_name}"
 
+
+def save_listing_image(file_storage):
+    """Upload ảnh bài đăng lên Cloudinary và trả về URL công khai."""
+    if not file_storage or file_storage.filename == "":
+        return None
+
+    filename = secure_filename(file_storage.filename)
+
+    if not filename or "." not in filename:
+        raise UploadError("Tệp tải lên không hợp lệ.")
+
+    extension = filename.rsplit(".", 1)[1].lower()
+
+    if extension not in IMAGE_EXTENSIONS:
+        raise UploadError("Định dạng ảnh không được hỗ trợ.")
+
+    if not os.environ.get("CLOUDINARY_URL"):
+        raise UploadError("Chưa cấu hình Cloudinary.")
+    cloudinary.config()
+    
+
+    try:
+        result = cloudinary.uploader.upload(
+            file_storage.stream,
+            folder="rental-management/listings",
+            resource_type="image",
+            allowed_formats=sorted(IMAGE_EXTENSIONS),
+            use_filename=False,
+            unique_filename=True,
+            overwrite=False,
+        )
+
+        image_url = result.get("secure_url")
+
+        if not image_url:
+            raise UploadError("Không nhận được đường dẫn ảnh từ Cloudinary.")
+
+        if len(image_url) > 255:
+            raise UploadError("Đường dẫn ảnh vượt quá giới hạn lưu trữ.")
+
+        return image_url
+
+    except UploadError:
+        raise
+    except Exception as exc:
+        current_app.logger.exception("Cloudinary upload failed")
+        raise UploadError(
+            "Không thể tải ảnh lên Cloudinary. Vui lòng thử lại."
+        ) from exc
 
 def send_private_upload(storage_key):
     """Serve a private logical key only through an already-authorized route."""

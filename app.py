@@ -1,12 +1,17 @@
+
 import hmac
 import os
 import secrets
 import sys
 from urllib.parse import urlparse
 
+from dotenv import load_dotenv
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"), override=True)
+
 from flask import Flask, abort, request, session
 from flask_login import LoginManager, current_user
-from dotenv import load_dotenv
 from flask_migrate import Migrate
 
 from models import db, HandoverEvidence, ListingImage, User
@@ -17,9 +22,6 @@ from database_config import (
     get_rental_test_postgresql_uri,
     is_flask_migrate_command,
 )
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or os.urandom(32)

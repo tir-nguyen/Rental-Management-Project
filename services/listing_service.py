@@ -3,8 +3,7 @@ from datetime import datetime
 from models import (
     db, Booking, Listing, ListingImage, AvailabilityBlock, CATEGORIES, DISTRICTS,
 )
-from services.upload_service import save_upload, UploadError
-
+from services.upload_service import save_listing_image, UploadError
 
 class ListingError(ValueError):
     pass
@@ -121,16 +120,18 @@ def create_listing(owner_id, form, files, upload_folder):
     )
     db.session.add(listing)
     db.session.flush()  # cần listing.id trước khi gắn ảnh
-
+    
     try:
         for f in files.getlist("images"):
-            url = save_upload(f, upload_folder)
+            url = save_listing_image(f)
             if url:
-                db.session.add(ListingImage(listing_id=listing.id, image_url=url))
+                db.session.add(
+                    ListingImage(listing_id=listing.id, image_url=url)
+                )
     except UploadError as exc:
         db.session.rollback()
         raise ListingError(str(exc)) from exc
-
+    
     db.session.commit()
     return listing
 
@@ -163,9 +164,11 @@ def update_listing(listing, owner_id, form, files, upload_folder):
     new_images = []
     try:
         for file in files.getlist("images"):
-            image_url = save_upload(file, upload_folder)
+            image_url = save_listing_image(file)
             if image_url:
-                new_images.append(ListingImage(listing_id=listing.id, image_url=image_url))
+                new_images.append(
+                    ListingImage(listing_id=listing.id, image_url=image_url)
+                )
     except UploadError as exc:
         db.session.rollback()
         raise ListingError(str(exc)) from exc

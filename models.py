@@ -81,7 +81,6 @@ class ListingImage(db.Model):
     listing_id = db.Column(db.Integer, db.ForeignKey("listings.id"), nullable=False)
     image_url = db.Column(db.String(255), nullable=False)
 
-
 class AvailabilityBlock(db.Model):
     __tablename__ = "availability_blocks"
     id = db.Column(db.Integer, primary_key=True)
