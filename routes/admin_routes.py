@@ -19,11 +19,32 @@ def admin_required():
 @login_required
 def admin_dashboard():
     admin_required()
+    search = request.args.get("q", "").strip()
+    status = request.args.get("status", "ALL").upper()
+    if status not in ("ALL", "PENDING", "APPROVED", "REJECTED"):
+        status = "ALL"
+    status_counts = admin_service.kyc_status_counts()
     return render_template(
         "admin/dashboard.html",
-        pending_kyc=admin_service.pending_kyc_users(),
+        kyc_users=admin_service.list_kyc_users(search, status),
+        kyc_counts=status_counts,
+        kyc_total=sum(status_counts.values()),
+        search=search,
+        selected_status=status,
         disputes=admin_service.open_disputes(),
     )
+
+
+@login_required
+def admin_kyc_detail(user_id):
+    admin_required()
+    user = User.query.get_or_404(user_id)
+    return render_template(
+        "admin/kyc_detail.html",
+        user=user,
+        kyc_counts=admin_service.kyc_status_counts(),
+    )
+
 
 @login_required
 def admin_resolve_kyc(user_id):
@@ -62,6 +83,12 @@ def admin_resolve_dispute(dispute_id):
 
 
 admin_bp.add_url_rule("/admin", endpoint="admin_dashboard", view_func=admin_dashboard, methods=["GET"])
+admin_bp.add_url_rule(
+    "/admin/kyc/<int:user_id>",
+    endpoint="admin_kyc_detail",
+    view_func=admin_kyc_detail,
+    methods=["GET"],
+)
 admin_bp.add_url_rule(
     "/admin/kyc/<int:user_id>", endpoint="admin_resolve_kyc",
     view_func=admin_resolve_kyc, methods=["POST"],

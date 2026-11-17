@@ -1,0 +1,34 @@
+<aside class="admin-sidebar">
+  <a class="admin-brand" href="{{ url_for('admin.admin_dashboard') }}" aria-label="UniRent Admin">
+    <span class="admin-brand-mark">UR</span>
+    <span><strong>UniRent</strong><small>Khu vực quản trị</small></span>
+  </a>
+
+  <p class="admin-nav-label">QUẢN TRỊ / XÁC MINH</p>
+  <nav class="admin-nav" aria-label="Quản trị">
+    <a class="{{ 'active' if request.endpoint in ['admin.admin_dashboard', 'admin.admin_kyc_detail'] else '' }}" href="{{ url_for('admin.admin_dashboard') }}">
+      <span class="admin-nav-icon" aria-hidden="true">◎</span>
+      <span>Hồ sơ sinh viên</span>
+      <span class="admin-nav-count">{{ kyc_counts.PENDING }}</span>
+    </a>
+    <a href="{{ url_for('admin.admin_dashboard') }}#disputes">
+      <span class="admin-nav-icon" aria-hidden="true">◇</span>
+      <span>Tranh chấp</span>
+    </a>
+  </nav>
+
+  <div class="admin-sidebar-note">
+    <span class="admin-nav-icon" aria-hidden="true">⬡</span>
+    <strong>Xác minh thủ công</strong>
+    <p>Chỉ sử dụng dữ liệu sinh viên để đối chiếu và xét duyệt hồ sơ.</p>
+  </div>
+
+  <div class="admin-sidebar-account">
+    <span class="admin-account-avatar">{{ current_user.full_name.strip()[:1]|upper }}</span>
+    <span class="admin-account-copy"><strong>{{ current_user.full_name }}</strong><small>Quản trị viên</small></span>
+    <form method="post" action="{{ url_for('auth.logout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" aria-label="Đăng xuất" title="Đăng xuất">↪</button>
+    </form>
+  </div>
+</aside>

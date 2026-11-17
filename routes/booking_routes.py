@@ -2,10 +2,13 @@
 
 from datetime import datetime
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint, abort, current_app, flash, jsonify, redirect, render_template,
+    request, url_for,
+)
 from flask_login import current_user, login_required
 
-from models import Booking, HandoverEvidence, PaymentAttempt
+from models import Booking, HandoverEvidence, Message, PaymentAttempt
 from services import booking_service, listing_service, review_service
 from services.booking_service import BookingError
 from services.upload_service import send_private_upload
@@ -44,6 +47,9 @@ def booking_detail(booking_id):
     booking = Booking.query.get_or_404(booking_id)
     if current_user.id not in (booking.renter_id, booking.lender_id):
         abort(403)
+    chat_messages = Message.query.filter_by(booking_id=booking.id).order_by(
+        Message.id.asc()
+    ).all()
     already_reviewed = review_service.already_reviewed(booking, current_user)
     latest_payment = PaymentAttempt.query.filter_by(booking_id=booking.id).order_by(
         PaymentAttempt.created_at.desc()
@@ -51,7 +57,39 @@ def booking_detail(booking_id):
     return render_template(
         "bookings/detail.html", booking=booking,
         already_reviewed=already_reviewed, latest_payment=latest_payment,
+        chat_messages=chat_messages,
     )
+
+
+@login_required
+def chat_messages(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    if current_user.id not in (booking.renter_id, booking.lender_id):
+        abort(403)
+
+    try:
+        after_id = int(request.args.get("after_id", "0"))
+        if after_id < 0:
+            raise ValueError
+    except ValueError:
+        abort(400)
+
+    messages = Message.query.filter(
+        Message.booking_id == booking.id,
+        Message.id > after_id,
+    ).order_by(Message.id.asc()).all()
+    response = jsonify(
+        messages=[
+            {
+                "id": message.id,
+                "sender_id": message.sender_id,
+                "content": message.content,
+            }
+            for message in messages
+        ]
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @login_required
@@ -177,6 +215,10 @@ bookings_bp.add_url_rule("/don-hang", endpoint="booking_list", view_func=booking
 bookings_bp.add_url_rule(
     "/don-hang/<int:booking_id>", endpoint="booking_detail",
     view_func=booking_detail, methods=["GET"],
+)
+bookings_bp.add_url_rule(
+    "/don-hang/<int:booking_id>/chat/messages", endpoint="chat_messages",
+    view_func=chat_messages, methods=["GET"],
 )
 bookings_bp.add_url_rule(
     "/don-hang/<int:booking_id>/evidence/<int:evidence_id>",

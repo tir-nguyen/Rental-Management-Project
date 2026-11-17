@@ -193,9 +193,18 @@
   {# ---------------- CHAT ---------------- #}
   <div class="section">
     <h2>Trò chuyện</h2>
-    <div class="chat-box">
-      {% for m in booking.messages %}
-        <div class="msg {{ 'mine' if m.sender_id==current_user.id else 'theirs' }}">{{ m.content }}</div>
+    <div
+      class="chat-box"
+      data-chat-messages
+      data-messages-url="{{ url_for('bookings.chat_messages', booking_id=booking.id) }}"
+      data-current-user-id="{{ current_user.id }}"
+      data-last-message-id="{{ chat_messages[-1].id if chat_messages else 0 }}"
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions"
+    >
+      {% for m in chat_messages %}
+        <div class="msg {{ 'mine' if m.sender_id==current_user.id else 'theirs' }}" data-message-id="{{ m.id }}">{{ m.content }}</div>
       {% else %}
         <p class="muted chat-empty">Chưa có tin nhắn nào. Hãy thương lượng thời gian/địa điểm giao nhận!</p>
       {% endfor %}

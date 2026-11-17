@@ -4,11 +4,14 @@ from io import BytesIO
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 os.environ["DATABASE_URL"] = "sqlite://"
 
 from app import app
-from models import Booking, Dispute, HandoverEvidence, Listing, ListingImage, User, db
+from models import (
+    Booking, Dispute, HandoverEvidence, Listing, ListingImage, Message, User, db,
+)
 
 
 class PrivateMediaSecurityTests(unittest.TestCase):
@@ -79,6 +82,7 @@ class PrivateMediaSecurityTests(unittest.TestCase):
             )
             self.kyc_key = "uploads/kyc.jpg"
             self.renter.kyc_card_image = self.kyc_key
+            self.renter.kyc_status = "PENDING"
             db.session.add_all(
                 [
                     self.evidence,
@@ -100,6 +104,7 @@ class PrivateMediaSecurityTests(unittest.TestCase):
             self.lender_id = self.lender.id
             self.outsider_id = self.outsider.id
             self.admin_id = self.admin.id
+            self.listing_id = self.listing.id
             self.booking_id = self.booking.id
             self.evidence_id = self.evidence.id
 
@@ -197,6 +202,103 @@ class PrivateMediaSecurityTests(unittest.TestCase):
             404,
         )
 
+    def test_chat_endpoint_returns_new_messages_only_to_booking_parties(self):
+        with app.app_context():
+            first = Message(
+                booking_id=self.booking_id,
+                sender_id=self.renter_id,
+                content="First synthetic message",
+            )
+            second = Message(
+                booking_id=self.booking_id,
+                sender_id=self.lender_id,
+                content="Second synthetic message",
+            )
+            db.session.add_all([first, second])
+            db.session.commit()
+            first_id = first.id
+            second_id = second.id
+
+        self._login_as(self.renter_id)
+        with patch("services.booking_service.expire_stale_bookings") as expire:
+            response = self.client.get(
+                f"/don-hang/{self.booking_id}/chat/messages?after_id={first_id}"
+            )
+            expire.assert_not_called()
+        try:
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.get_json()["messages"],
+                [
+                    {
+                        "id": second_id,
+                        "sender_id": self.lender_id,
+                        "content": "Second synthetic message",
+                    }
+                ],
+            )
+            self.assertIn("no-store", response.headers["Cache-Control"])
+        finally:
+            response.close()
+
+        self._login_as(self.outsider_id)
+        self.assertEqual(
+            self._get_status(
+                f"/don-hang/{self.booking_id}/chat/messages?after_id=0"
+            ),
+            403,
+        )
+
+    def test_sent_message_becomes_visible_to_other_party_without_posting_back(self):
+        self._login_as(self.renter_id)
+        sent = self.client.post(
+            f"/don-hang/{self.booking_id}/chat",
+            data={
+                "csrf_token": "test-csrf-token",
+                "content": "Hello from the renter",
+            },
+        )
+        self.assertEqual(sent.status_code, 302)
+        sent.close()
+
+        self._login_as(self.lender_id)
+        response = self.client.get(
+            f"/don-hang/{self.booking_id}/chat/messages?after_id=0"
+        )
+        try:
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.get_json()["messages"][0]["content"],
+                "Hello from the renter",
+            )
+        finally:
+            response.close()
+
+    def test_booking_detail_exposes_private_chat_polling_endpoint_and_cursor(self):
+        with app.app_context():
+            message = Message(
+                booking_id=self.booking_id,
+                sender_id=self.renter_id,
+                content="Synthetic initial message",
+            )
+            db.session.add(message)
+            db.session.commit()
+            message_id = message.id
+
+        self._login_as(self.lender_id)
+        response = self.client.get(f"/don-hang/{self.booking_id}")
+        try:
+            body = response.get_data(as_text=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(
+                f'data-messages-url="/don-hang/{self.booking_id}/chat/messages"',
+                body,
+            )
+            self.assertIn(f'data-last-message-id="{message_id}"', body)
+            self.assertIn('data-message-id="' + str(message_id) + '"', body)
+        finally:
+            response.close()
+
     def test_admin_dashboard_uses_authorized_evidence_route(self):
         self._login_as(self.admin_id)
         response = self.client.get("/admin")
@@ -208,8 +310,139 @@ class PrivateMediaSecurityTests(unittest.TestCase):
                 body,
             )
             self.assertNotIn("/static/uploads/evidence.jpg", body)
+            self.assertIn(f"/admin/kyc/{self.renter_id}", body)
         finally:
             response.close()
+
+    def test_admin_kyc_detail_requires_admin_and_uses_private_image_route(self):
+        url = f"/admin/kyc/{self.renter_id}"
+        self.assertEqual(self._get_status(url), 302)
+
+        self._login_as(self.outsider_id)
+        self.assertEqual(self._get_status(url), 403)
+
+        self._login_as(self.admin_id)
+        response = self.client.get(url)
+        try:
+            body = response.get_data(as_text=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(f"/admin/kyc/{self.renter_id}/image", body)
+            self.assertNotIn("/static/uploads/kyc.jpg", body)
+            self.assertIn('name="decision" value="approve"', body)
+            self.assertIn('name="decision" value="reject"', body)
+        finally:
+            response.close()
+
+    def test_owner_can_delete_listing_without_bookings_and_cleans_local_image(self):
+        image_key = "uploads/delete-me.jpg"
+        image_path = self._write_upload(self.upload_root, "delete-me.jpg")
+        with app.app_context():
+            listing = Listing(
+                owner_id=self.lender_id,
+                title="Listing to delete",
+                price_per_day=100,
+                status="AVAILABLE",
+            )
+            db.session.add(listing)
+            db.session.flush()
+            image = ListingImage(listing_id=listing.id, image_url=image_key)
+            db.session.add(image)
+            db.session.commit()
+            listing_id = listing.id
+
+        self._login_as(self.lender_id)
+        page = self.client.get("/tin-cua-toi")
+        self.assertIn(f"/san-pham/{listing_id}/xoa", page.get_data(as_text=True))
+        page.close()
+
+        response = self.client.post(
+            f"/san-pham/{listing_id}/xoa",
+            data={"csrf_token": "test-csrf-token"},
+            follow_redirects=True,
+        )
+        try:
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("Đã xóa tin đăng.", response.get_data(as_text=True))
+        finally:
+            response.close()
+
+        with app.app_context():
+            self.assertIsNone(db.session.get(Listing, listing_id))
+            self.assertIsNone(
+                ListingImage.query.filter_by(image_url=image_key).first()
+            )
+        self.assertFalse(image_path.exists())
+
+    def test_listing_with_booking_cannot_be_deleted(self):
+        self._login_as(self.lender_id)
+        response = self.client.post(
+            f"/san-pham/{self.listing_id}/xoa",
+            data={"csrf_token": "test-csrf-token"},
+            follow_redirects=True,
+        )
+        try:
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("Không thể xóa tin đã có đơn thuê.", response.get_data(as_text=True))
+        finally:
+            response.close()
+
+        with app.app_context():
+            self.assertIsNotNone(db.session.get(Listing, self.listing_id))
+
+    def test_non_owner_cannot_delete_listing(self):
+        self._login_as(self.outsider_id)
+        response = self.client.post(
+            f"/san-pham/{self.listing_id}/xoa",
+            data={"csrf_token": "test-csrf-token"},
+        )
+        try:
+            self.assertEqual(response.status_code, 404)
+        finally:
+            response.close()
+
+        with app.app_context():
+            self.assertIsNotNone(db.session.get(Listing, self.listing_id))
+
+    def test_deleting_listing_removes_its_cloudinary_image(self):
+        image_url = (
+            "https://res.cloudinary.com/demo/image/upload/v123/"
+            "rental-management/listings/example-image.jpg"
+        )
+        with app.app_context():
+            listing = Listing(
+                owner_id=self.lender_id,
+                title="Cloud image listing",
+                price_per_day=100,
+                status="AVAILABLE",
+            )
+            db.session.add(listing)
+            db.session.flush()
+            db.session.add(
+                ListingImage(listing_id=listing.id, image_url=image_url)
+            )
+            listing_id = listing.id
+            db.session.commit()
+
+        with patch(
+            "services.upload_service.cloudinary.uploader.destroy",
+            return_value={"result": "ok"},
+        ) as destroy:
+            self._login_as(self.lender_id)
+            response = self.client.post(
+                f"/san-pham/{listing_id}/xoa",
+                data={"csrf_token": "test-csrf-token"},
+            )
+            try:
+                self.assertEqual(response.status_code, 302)
+            finally:
+                response.close()
+
+        destroy.assert_called_once_with(
+            "rental-management/listings/example-image",
+            resource_type="image",
+            type="upload",
+            invalidate=True,
+        )
 
     def test_kyc_upload_uses_private_folder_and_keeps_logical_key(self):
         self._login_as(self.renter_id)

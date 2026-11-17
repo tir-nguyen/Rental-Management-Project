@@ -3,14 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cho thuê đồ sinh viên Hà Nội</title>
+<title>UniRent | Thuê đồ sinh viên tại Hà Nội</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </head>
-<body>
-  <header class="topbar">
+<body class="{% block body_class %}{% endblock %}">
+  <header class="topbar{% if not current_user.is_authenticated and request.endpoint in ['auth.login', 'auth.register'] %} auth-topbar{% endif %}">
     <div class="topbar-inner">
-      <a href="{{ url_for('listings.index') }}" class="brand">Cho<span>Thuê</span></a>
+      <a href="{{ url_for('listings.index') }}" class="site-brand" aria-label="UniRent - Trang chủ">
+        <span class="site-brand-mark">UR</span>
+        <span><strong>UniRent</strong><small>Thuê đồ sinh viên tại Hà Nội</small></span>
+      </a>
+      {% if not current_user.is_authenticated and request.endpoint in ['auth.login', 'auth.register'] %}
+      <nav class="auth-header-links" aria-label="Điều hướng">
+        <a href="{{ url_for('listings.index') }}">Khám phá đồ dùng</a>
+        <a href="#auth-help">Trợ giúp</a>
+        {% if request.endpoint == 'auth.login' %}
+        <a class="auth-header-button" href="{{ url_for('auth.register') }}">Đăng ký</a>
+        {% else %}
+        <a class="auth-header-button" href="{{ url_for('auth.login') }}">Đăng nhập</a>
+        {% endif %}
+      </nav>
+      {% else %}
       {% if current_user.is_authenticated %}
       <div class="header-actions">
         <a class="header-profile" href="{{ url_for('profiles.my_profile') }}" aria-label="Hồ sơ của {{ current_user.full_name }}">
@@ -64,6 +78,7 @@
       </div>
       {% else %}
       <div class="header-actions"><a href="{{ url_for('auth.login') }}" class="login-link">Đăng nhập</a><a href="{{ url_for('auth.register') }}" class="register-link">Tạo tài khoản</a></div>
+      {% endif %}
       {% endif %}
     </div>
   </header>

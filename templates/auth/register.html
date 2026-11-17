@@ -1,43 +1,70 @@
 {% extends "base.html" %}
-{% block title %}Đăng ký{% endblock %}
-{% block page_class %}auth-page{% endblock %}
+{% block title %}Đăng ký | UniRent{% endblock %}
+{% block body_class %}auth-layout-page{% endblock %}
+{% block page_class %}auth-page auth-register-page{% endblock %}
 {% block content %}
-<div class="auth-card">
-  <h1>Tạo tài khoản sinh viên</h1>
-  <p class="muted auth-intro">Dùng email của bạn để tạo tài khoản cho thuê và đi thuê.</p>
+<div class="auth-layout">
+  <section class="auth-story" aria-labelledby="auth-story-title">
+    <p class="auth-eyebrow"><span aria-hidden="true">⌖</span> DÀNH CHO SINH VIÊN HÀ NỘI</p>
+    <h1 id="auth-story-title">Một tài khoản.<br>Kết nối cả cộng đồng.</h1>
+    <p class="auth-story-copy">Thuê đồ khi cần, cho thuê khi không dùng. Một tài khoản cho cả hai vai trò, trong cộng đồng sinh viên được xác minh.</p>
 
-  <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <div class="field">
-      <label>Họ và tên</label>
-      <input type="text" name="full_name" required placeholder="Nguyễn Văn A">
+    <div class="auth-steps">
+      <h2>Bắt đầu với 3 bước rõ ràng</h2>
+      <ol>
+        <li><span>01</span><div><strong>Tạo tài khoản sinh viên</strong><small>Dùng email trường có đuôi .edu.vn.</small></div></li>
+        <li><span>02</span><div><strong>Xác thực email &amp; số điện thoại</strong><small>Xác nhận email và mã OTP sau khi đăng ký.</small></div></li>
+        <li><span>03</span><div><strong>Gửi thẻ sinh viên để xét duyệt</strong><small>Admin đối chiếu thủ công trước khi xác minh.</small></div></li>
+      </ol>
     </div>
-    <div class="field">
-      <label>Email</label>
-      <input type="email" name="school_email" required placeholder="name@gmail.com" autocomplete="email">
-    </div>
-    <div class="field">
-      <label>Số điện thoại</label>
-      <input type="tel" name="phone_number" required placeholder="0900 123 456">
-    </div>
-    <div class="field">
-      <label>Quận / huyện</label>
-      <select name="district">
-        {% for d in districts %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="field">
-      <label>Mật khẩu</label>
-      <div class="password-input-wrap">
-        <input id="register-password" type="password" name="password" required minlength="6">
-        <button class="password-toggle" type="button" data-password-toggle="register-password" aria-label="Hiện mật khẩu" aria-pressed="false">Hiện</button>
+
+  </section>
+
+  <section class="auth-card" aria-labelledby="register-title">
+    <h2 id="register-title">Tạo tài khoản UniRent</h2>
+    <p class="auth-card-intro">Dùng chung để đi thuê và cho thuê, không cần chọn vai trò.</p>
+
+    <form method="post" class="auth-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <h3 class="auth-form-section-title"><span>01</span> Thông tin cơ bản</h3>
+      <div class="field">
+        <label for="register-name">Họ và tên</label>
+        <input id="register-name" type="text" name="full_name" required autocomplete="name" placeholder="Nhập họ tên theo thẻ sinh viên">
       </div>
-    </div>
-    <button class="btn" type="submit">Đăng Ký</button>
-  </form>
+      <div class="field">
+        <label for="register-email">Email</label>
+        <div class="auth-input-with-icon">
+          <input id="register-email" type="email" name="school_email" required autocomplete="email" placeholder="Ví dụ: ten@gmail.com">
+          <span aria-hidden="true">✉</span>
+        </div>
+        <small class="auth-field-hint">Sau khi tạo tài khoản, mở email để xác nhận địa chỉ.</small>
+      </div>
+      <div class="field">
+        <label for="register-password">Mật khẩu</label>
+        <div class="password-input-wrap auth-password-wrap">
+          <input id="register-password" type="password" name="password" required minlength="6" autocomplete="new-password" placeholder="Tối thiểu 6 ký tự">
+          <button class="password-toggle auth-password-toggle" type="button" data-password-toggle="register-password" aria-label="Hiện mật khẩu" aria-pressed="false">Hiện</button>
+        </div>
+      </div>
 
-  <p class="muted auth-secondary">
-    Đã có tài khoản? <a class="auth-link" href="{{ url_for('auth.login') }}">Đăng nhập</a>
-  </p>
+      <h3 class="auth-form-section-title auth-contact-title"><span>02</span> Thông tin liên hệ</h3>
+      <div class="field">
+        <label for="register-phone">Số điện thoại</label>
+        <input id="register-phone" type="tel" name="phone_number" required autocomplete="tel" placeholder="Nhập số điện thoại">
+        <small class="auth-field-hint">Bạn sẽ xác thực số điện thoại bằng mã OTP ở bước tiếp theo.</small>
+      </div>
+      <div class="field">
+        <label for="register-district">Quận / huyện</label>
+        <select id="register-district" name="district">
+          {% for d in districts %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+        </select>
+      </div>
+      <button class="btn auth-submit" type="submit">Tạo tài khoản</button>
+    </form>
+
+    <p class="auth-next-step"><span aria-hidden="true">▣</span>Tiếp theo: xác nhận email và tải thẻ sinh viên tại trang Xác minh tài khoản để Admin xét duyệt.</p>
+    <p class="auth-secondary">Đã có tài khoản? <a class="auth-link" href="{{ url_for('auth.login') }}">Đăng nhập</a></p>
+  </section>
 </div>
+<footer class="auth-footer"><span>© 2026 UniRent · Cộng đồng sinh viên Hà Nội</span><a href="{{ url_for('listings.index') }}">Khám phá đồ dùng</a></footer>
 {% endblock %}

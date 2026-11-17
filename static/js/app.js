@@ -99,3 +99,69 @@ document.addEventListener("keydown", (event) => {
     notificationToggle?.focus();
   }
 });
+
+const chatMessages = document.querySelector("[data-chat-messages]");
+if (chatMessages) {
+  let lastMessageId = Number.parseInt(chatMessages.dataset.lastMessageId || "0", 10);
+  let requestInFlight = false;
+
+  const refreshChat = async () => {
+    if (requestInFlight || document.hidden) return;
+    requestInFlight = true;
+    try {
+      const url = new URL(chatMessages.dataset.messagesUrl, window.location.origin);
+      url.searchParams.set("after_id", String(lastMessageId));
+      const response = await fetch(url, {
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+
+      if (response.redirected) {
+        window.location.assign(response.url);
+        return;
+      }
+      if (!response.ok) {
+        throw new Error(`Chat refresh failed with status ${response.status}`);
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error("Chat refresh returned a non-JSON response");
+      }
+
+      const payload = await response.json();
+      if (!Array.isArray(payload.messages) || payload.messages.length === 0) return;
+
+      const wasNearBottom =
+        chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 48;
+      chatMessages.querySelector(".chat-empty")?.remove();
+
+      for (const message of payload.messages) {
+        if (!Number.isSafeInteger(message.id) || typeof message.content !== "string") continue;
+        const bubble = document.createElement("div");
+        bubble.className = `msg ${
+          String(message.sender_id) === chatMessages.dataset.currentUserId ? "mine" : "theirs"
+        }`;
+        bubble.dataset.messageId = String(message.id);
+        bubble.textContent = message.content;
+        chatMessages.append(bubble);
+        lastMessageId = Math.max(lastMessageId, message.id);
+      }
+
+      if (wasNearBottom) chatMessages.scrollTop = chatMessages.scrollHeight;
+    } catch (error) {
+      console.warn("Could not refresh chat messages.", error);
+    } finally {
+      requestInFlight = false;
+    }
+  };
+
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  refreshChat();
+  window.setInterval(refreshChat, 2500);
+  window.addEventListener("focus", refreshChat);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshChat();
+  });
+}

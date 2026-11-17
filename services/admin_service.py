@@ -2,12 +2,41 @@
 from datetime import datetime
 
 from models import db, User, Dispute, Transaction, AvailabilityBlock
+from sqlalchemy import func, or_
 from services.booking_service import add_trust_delta
 from services import notification_service
 
 
 def pending_kyc_users():
     return User.query.filter_by(kyc_status="PENDING").all()
+
+
+def kyc_status_counts():
+    counts = {"PENDING": 0, "APPROVED": 0, "REJECTED": 0}
+    rows = (
+        db.session.query(User.kyc_status, func.count(User.id))
+        .filter(User.kyc_status.in_(counts))
+        .group_by(User.kyc_status)
+        .all()
+    )
+    counts.update(rows)
+    return counts
+
+
+def list_kyc_users(search="", status="ALL"):
+    query = User.query.filter(User.kyc_status.in_(("PENDING", "APPROVED", "REJECTED")))
+    if status in ("PENDING", "APPROVED", "REJECTED"):
+        query = query.filter_by(kyc_status=status)
+    if search:
+        pattern = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                User.full_name.ilike(pattern),
+                User.school_email.ilike(pattern),
+                User.phone_number.ilike(pattern),
+            )
+        )
+    return query.order_by(User.created_at.desc(), User.id.desc()).all()
 
 
 def open_disputes():

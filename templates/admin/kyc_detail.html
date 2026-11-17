@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Hồ sơ {{ user.full_name }} | UniRent{% endblock %}
+{% block body_class %}admin-layout-page{% endblock %}
+{% block page_class %}admin-page{% endblock %}
+{% block content %}
+<div class="admin-shell">
+  {% include "admin/_sidebar.html" %}
+  <div class="admin-workspace">
+    {% set admin_breadcrumb = "Xác minh sinh viên" %}
+    {% include "admin/_page_header.html" %}
+
+    <div class="admin-content admin-detail-content">
+      <a class="admin-back-link" href="{{ url_for('admin.admin_dashboard') }}">← Danh sách hồ sơ</a>
+      <div class="admin-detail-heading">
+        <div>
+          <div class="admin-detail-title">
+            <h1>{{ user.full_name }}</h1>
+            {% if user.kyc_status == "PENDING" %}
+            <span class="admin-status-badge status-pending">● Chờ duyệt</span>
+            {% elif user.kyc_status == "APPROVED" %}
+            <span class="admin-status-badge status-approved">● Đã duyệt</span>
+            {% else %}
+            <span class="admin-status-badge status-rejected">● Từ chối</span>
+            {% endif %}
+          </div>
+          <p>Mã hồ sơ #{{ user.id }} · Tham gia {{ user.created_at.strftime('%d/%m/%Y') if user.created_at else "chưa rõ" }}</p>
+        </div>
+        <span class="admin-privacy-label"><span aria-hidden="true">▣</span> Chỉ quản trị viên được xem hồ sơ này</span>
+      </div>
+
+      <div class="admin-detail-grid">
+        <div class="admin-detail-main">
+          <section class="admin-detail-card">
+            <div class="admin-card-heading"><div><h2>Thông tin tài khoản</h2><p>Thông tin được cung cấp trong hồ sơ UniRent.</p></div><span class="admin-data-label">Dữ liệu tài khoản</span></div>
+            <dl class="admin-profile-facts">
+              <div><dt>Họ và tên</dt><dd>{{ user.full_name }}</dd></div>
+              <div><dt>Khu vực</dt><dd>{{ user.district or "Chưa cập nhật" }}</dd></div>
+              <div><dt>Email</dt><dd>{{ user.school_email }}</dd><small class="{{ 'is-verified' if user.email_verified else 'is-unverified' }}">{{ '✓ Đã xác minh' if user.email_verified else '• Chưa xác minh' }}</small></div>
+              <div><dt>Số điện thoại</dt><dd>{{ user.phone_number }}</dd><small class="{{ 'is-verified' if user.phone_verified else 'is-unverified' }}">{{ '✓ Đã xác minh' if user.phone_verified else '• Chưa xác minh' }}</small></div>
+              <div><dt>Ngày tạo tài khoản</dt><dd>{{ user.created_at.strftime('%d/%m/%Y %H:%M') if user.created_at else "Chưa có dữ liệu" }}</dd></div>
+              <div><dt>Trust Score</dt><dd>{{ user.trust_score }}</dd></div>
+            </dl>
+          </section>
+
+          <section class="admin-detail-card admin-student-card">
+            <div class="admin-card-heading"><div><h2>Ảnh thẻ sinh viên</h2><p>Ảnh riêng tư, chỉ hiển thị trong trang quản trị.</p></div>
+              {% if user.kyc_card_image %}<span class="admin-file-state">Đã tải lên</span>{% else %}<span class="admin-file-state is-unverified">Chưa có ảnh</span>{% endif %}
+            </div>
+            {% if user.kyc_card_image %}
+            <button class="admin-kyc-document" type="button" data-image-preview="{{ url_for('admin.admin_kyc_image', user_id=user.id) }}" data-image-alt="Ảnh thẻ sinh viên của {{ user.full_name }}" aria-label="Phóng to ảnh thẻ sinh viên">
+              <img src="{{ url_for('admin.admin_kyc_image', user_id=user.id) }}" alt="Ảnh thẻ sinh viên của {{ user.full_name }}">
+              <span>Nhấn để phóng to</span>
+            </button>
+            {% else %}
+            <p class="admin-no-document">Người dùng chưa tải ảnh thẻ sinh viên lên.</p>
+            {% endif %}
+          </section>
+        </div>
+
+        <aside class="admin-detail-aside">
+          <section class="admin-detail-card">
+            <div class="admin-card-heading"><div><h2>Đối chiếu thông tin</h2><p>Kiểm tra các dữ liệu hiện có trước khi quyết định.</p></div></div>
+            <ul class="admin-checklist">
+              <li class="{{ 'is-checked' if user.full_name else 'is-missing' }}"><span>{{ '✓' if user.full_name else '!' }}</span> Có họ và tên trong tài khoản</li>
+              <li class="{{ 'is-checked' if user.email_verified else 'is-missing' }}"><span>{{ '✓' if user.email_verified else '!' }}</span> Email {{ 'đã' if user.email_verified else 'chưa' }} xác minh</li>
+              <li class="{{ 'is-checked' if user.phone_verified else 'is-missing' }}"><span>{{ '✓' if user.phone_verified else '!' }}</span> Số điện thoại {{ 'đã' if user.phone_verified else 'chưa' }} xác minh</li>
+              <li class="{{ 'is-checked' if user.kyc_card_image else 'is-missing' }}"><span>{{ '✓' if user.kyc_card_image else '!' }}</span> {{ 'Đã có ảnh thẻ để xem xét' if user.kyc_card_image else 'Chưa có ảnh thẻ sinh viên' }}</li>
+            </ul>
+          </section>
+
+          <section class="admin-detail-card admin-decision-card">
+            <h2>Kết quả xét duyệt</h2>
+            <p class="admin-decision-copy">Chỉ duyệt khi thông tin trên thẻ rõ ràng và phù hợp với hồ sơ.</p>
+            {% if user.kyc_status == "PENDING" %}
+            <form method="post" action="{{ url_for('admin.admin_resolve_kyc', user_id=user.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button class="btn admin-approve-button" type="submit" name="decision" value="approve">✓ &nbsp; Phê duyệt hồ sơ</button>
+              <button class="btn ghost admin-reject-button" type="submit" name="decision" value="reject">Từ chối hồ sơ</button>
+            </form>
+            {% else %}
+            <p class="admin-decision-result">Hồ sơ đã được xử lý: <strong>{{ "Đã duyệt" if user.kyc_status == "APPROVED" else "Từ chối" }}</strong>.</p>
+          {% endif %}
+          </section>
+          <p class="admin-privacy-note"><span aria-hidden="true">▣</span> Ảnh thẻ chỉ phục vụ xác minh. Không tải xuống hoặc chia sẻ ngoài phạm vi xét duyệt.</p>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -64,6 +64,8 @@ def protect_post_requests_from_csrf():
 
 @app.before_request
 def prepare_database_and_expire_bookings():
+    if request.endpoint == "bookings.chat_messages":
+        return
     if request.path.startswith(("/don-hang", "/san-pham/")):
         booking_service.expire_stale_bookings()
 

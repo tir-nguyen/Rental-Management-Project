@@ -3,7 +3,9 @@ from datetime import datetime
 from models import (
     db, Booking, Listing, ListingImage, AvailabilityBlock, CATEGORIES, DISTRICTS,
 )
-from services.upload_service import save_listing_image, UploadError
+from services.upload_service import (
+    UploadError, delete_listing_image, save_listing_image,
+)
 
 class ListingError(ValueError):
     pass
@@ -88,6 +90,25 @@ def toggle_visibility(listing, owner_id):
     listing.status = "HIDDEN" if listing.status == "AVAILABLE" else "AVAILABLE"
     db.session.commit()
     return listing
+
+
+def delete_listing(listing, owner_id):
+    if listing.owner_id != owner_id:
+        raise ListingError("Bạn không có quyền xóa tin này.")
+    if Booking.query.filter_by(listing_id=listing.id).first() is not None:
+        raise ListingError(
+            "Không thể xóa tin đã có đơn thuê. Bạn có thể ẩn tin để ngừng nhận đơn mới."
+        )
+
+    image_urls = {image.image_url for image in listing.images}
+    db.session.delete(listing)
+    db.session.commit()
+
+    cleanup_complete = True
+    for image_url in image_urls:
+        if ListingImage.query.filter_by(image_url=image_url).first() is None:
+            cleanup_complete = delete_listing_image(image_url) and cleanup_complete
+    return cleanup_complete
 
 
 def create_listing(owner_id, form, files, upload_folder):

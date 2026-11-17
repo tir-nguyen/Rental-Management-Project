@@ -148,6 +148,28 @@ def toggle_listing_visibility(listing_id):
         flash(str(e), "error")
     return redirect(url_for("listings.my_listings"))
 
+
+@login_required
+def delete_listing(listing_id):
+    listing = listing_service.get_listing_or_404(listing_id)
+    if listing.owner_id != current_user.id:
+        abort(404)
+    try:
+        cleanup_complete = listing_service.delete_listing(listing, current_user.id)
+    except listing_service.ListingError as e:
+        flash(str(e), "error")
+    else:
+        if cleanup_complete:
+            flash("Đã xóa tin đăng.", "success")
+        else:
+            flash(
+                "Tin đã được xóa, nhưng có ảnh chưa thể xóa khỏi kho lưu trữ. "
+                "Vui lòng kiểm tra log ứng dụng.",
+                "error",
+            )
+    return redirect(url_for("listings.my_listings"))
+
+
 @login_required
 def remove_listing_block(block_id):
     block = AvailabilityBlock.query.get_or_404(block_id)
@@ -178,6 +200,10 @@ listings_bp.add_url_rule(
 listings_bp.add_url_rule(
     "/san-pham/<int:listing_id>/hien-an", endpoint="toggle_listing_visibility",
     view_func=toggle_listing_visibility, methods=["POST"],
+)
+listings_bp.add_url_rule(
+    "/san-pham/<int:listing_id>/xoa", endpoint="delete_listing",
+    view_func=delete_listing, methods=["POST"],
 )
 listings_bp.add_url_rule(
     "/lich-ban/<int:block_id>/xoa", endpoint="remove_listing_block",

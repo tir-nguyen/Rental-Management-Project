@@ -1,9 +1,12 @@
 """Lưu file người dùng tải lên (ảnh thẻ SV, ảnh listing, ảnh bằng chứng check-in/out)."""
 import os
+import re
 import uuid
 import cloudinary
+import cloudinary.exceptions
 import cloudinary.uploader
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from flask import abort, current_app, send_from_directory
 from werkzeug.utils import secure_filename
@@ -82,6 +85,81 @@ def save_listing_image(file_storage):
         raise UploadError(
             "Không thể tải ảnh lên Cloudinary. Vui lòng thử lại."
         ) from exc
+
+
+def delete_listing_image(image_url):
+    """Delete an owned listing image from local storage or Cloudinary."""
+    if not isinstance(image_url, str):
+        current_app.logger.error("Listing image has an invalid storage key")
+        return False
+
+    if image_url.startswith("uploads/"):
+        filename = image_url[len("uploads/"):]
+        if (
+            not filename
+            or "/" in filename
+            or "\\" in filename
+            or secure_filename(filename) != filename
+            or "." not in filename
+            or filename.rsplit(".", 1)[1].lower() not in IMAGE_EXTENSIONS
+        ):
+            current_app.logger.error("Listing image has an unsafe local storage key")
+            return False
+
+        root = Path(current_app.config["UPLOAD_FOLDER"]).resolve()
+        path = (root / filename).resolve()
+        if path.parent != root:
+            current_app.logger.error("Listing image resolves outside upload storage")
+            return False
+        if not path.is_file():
+            return True
+        try:
+            path.unlink()
+        except OSError:
+            current_app.logger.exception("Could not remove local listing image")
+            return False
+        return True
+
+    parsed_url = urlsplit(image_url)
+    if parsed_url.scheme not in ("http", "https") or parsed_url.hostname != "res.cloudinary.com":
+        return True
+
+    segments = [segment for segment in parsed_url.path.split("/") if segment]
+    try:
+        upload_index = segments.index("upload")
+    except ValueError:
+        current_app.logger.error("Cloudinary listing image URL has no upload segment")
+        return False
+    asset_segments = segments[upload_index + 1:]
+    if asset_segments and re.fullmatch(r"v\d+", asset_segments[0]):
+        asset_segments = asset_segments[1:]
+    asset_path = "/".join(asset_segments)
+    if not asset_path.startswith("rental-management/listings/"):
+        return True
+
+    suffix = Path(asset_path).suffix
+    public_id = asset_path[:-len(suffix)] if suffix else asset_path
+    if not public_id:
+        current_app.logger.error("Cloudinary listing image URL has an invalid public ID")
+        return False
+
+    try:
+        cloudinary.config()
+        result = cloudinary.uploader.destroy(
+            public_id,
+            resource_type="image",
+            type="upload",
+            invalidate=True,
+        )
+    except cloudinary.exceptions.Error:
+        current_app.logger.exception("Could not remove Cloudinary listing image")
+        return False
+
+    if result.get("result") not in ("ok", "not found"):
+        current_app.logger.error("Cloudinary did not confirm listing image deletion")
+        return False
+    return True
+
 
 def send_private_upload(storage_key):
     """Serve a private logical key only through an already-authorized route."""
