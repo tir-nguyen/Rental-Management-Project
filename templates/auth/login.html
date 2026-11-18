@@ -12,8 +12,8 @@
     <div class="auth-steps">
       <h2>An tâm từ bước xác minh</h2>
       <ol>
-        <li><span>01</span><div><strong>Tạo tài khoản sinh viên</strong><small>Dùng email trường có đuôi .edu.vn.</small></div></li>
-        <li><span>02</span><div><strong>Xác thực email &amp; số điện thoại</strong><small>Xác nhận email và mã OTP gửi qua SMS.</small></div></li>
+        <li><span>01</span><div><strong>Tạo tài khoản sinh viên</strong><small>Dùng email cá nhân, ví dụ ten@gmail.com.</small></div></li>
+        <li><span>02</span><div><strong>Xác thực email &amp; số điện thoại</strong><small>Mã OTP demo hiển thị trên trang; chưa gửi qua SMS.</small></div></li>
         <li><span>03</span><div><strong>Gửi thẻ sinh viên để xét duyệt</strong><small>Admin đối chiếu thủ công trước khi xác minh.</small></div></li>
       </ol>
     </div>
@@ -28,9 +28,9 @@
     <form method="post" class="auth-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <div class="field">
-        <label for="login-email">Email trường</label>
+        <label for="login-email">Email</label>
         <div class="auth-input-with-icon">
-          <input id="login-email" type="email" name="school_email" required autocomplete="email" placeholder="Nhập email .edu.vn của bạn">
+          <input id="login-email" type="email" name="school_email" required autocomplete="email" placeholder="Nhập email của bạn, ví dụ ten@gmail.com">
           <span aria-hidden="true">✉</span>
         </div>
       </div>

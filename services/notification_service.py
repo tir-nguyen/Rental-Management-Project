@@ -1,6 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from models import db, Notification
+
+VIETNAM_TIMEZONE = timezone(timedelta(hours=7))
 
 
 def notify(user_id, message, booking_id=None):
@@ -39,3 +41,45 @@ def mark_read(notification, user_id):
         notification.read_at = datetime.utcnow()
         db.session.commit()
     return True
+
+
+def mark_all_read(user_id):
+    count = Notification.query.filter_by(
+        user_id=user_id, read_at=None
+    ).update(
+        {Notification.read_at: datetime.utcnow()},
+        synchronize_session=False,
+    )
+    db.session.commit()
+    return count
+
+
+def group_by_date(notifications, today=None):
+    today = today or datetime.now(VIETNAM_TIMEZONE).date()
+    groups = {}
+    group_order = []
+    labels = (
+        (0, "Hôm nay"),
+        (1, "Hôm qua"),
+        (6, "Tuần này"),
+        (13, "Tuần trước"),
+    )
+
+    for notification in notifications:
+        created_at = notification.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        age = max((today - created_at.astimezone(VIETNAM_TIMEZONE).date()).days, 0)
+        label = next(
+            (name for max_age, name in labels if age <= max_age),
+            "Trước đó",
+        )
+        if label not in groups:
+            groups[label] = []
+            group_order.append(label)
+        groups[label].append(notification)
+
+    return [
+        {"label": label, "notifications": groups[label]}
+        for label in group_order
+    ]

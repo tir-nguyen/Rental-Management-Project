@@ -124,7 +124,7 @@ def checkin(booking, actor, note, media_files, upload_folder):
         booking.status = "IN_USE"
     notification_service.notify_booking_parties(
         booking,
-        "Một bên đã xác nhận bàn giao đồ." if not both_confirmed else "Hai bên đã xác nhận bàn giao; đơn đang IN_USE.",
+        "Một bên đã xác nhận bàn giao đồ." if not both_confirmed else "Hai bên đã xác nhận bàn giao; đơn đang được sử dụng.",
         exclude_user_id=actor.id,
     )
     db.session.commit()
@@ -214,7 +214,13 @@ def expire_stale_bookings(now=None):
     for booking in expired:
         booking.status = "EXPIRED"
         AvailabilityBlock.query.filter_by(booking_id=booking.id).delete()
-        notification_service.notify_booking_parties(booking, "Yêu cầu thuê đã hết hạn và được tự động đóng.")
+        expiration_message = "Yêu cầu thuê đã hết hạn và được tự động đóng."
+        notification_service.notify_once(
+            booking.renter_id, expiration_message, booking.id
+        )
+        notification_service.notify_once(
+            booking.lender_id, expiration_message, booking.id
+        )
     reminder_date = now.date() + timedelta(days=1)
     returning = Booking.query.filter(
         Booking.status == "IN_USE", Booking.end_date == reminder_date

@@ -1,17 +1,21 @@
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from werkzeug.datastructures import FileMultiDict, FileStorage, MultiDict
 
 os.environ["DATABASE_URL"] = "sqlite://"
 
 from app import app
 from models import (
-    Booking, Dispute, HandoverEvidence, Listing, ListingImage, Message, User, db,
+    Booking, CATEGORIES, DISTRICTS, Dispute, HandoverEvidence, Listing,
+    ListingImage, Message, Notification, User, db,
 )
+from services import booking_service, notification_service
+from services import listing_service
 
 
 class PrivateMediaSecurityTests(unittest.TestCase):
@@ -299,12 +303,222 @@ class PrivateMediaSecurityTests(unittest.TestCase):
         finally:
             response.close()
 
+    def test_booking_status_filter_returns_vietnamese_labels(self):
+        labels = app.jinja_env.filters["status_vi"]
+        self.assertEqual(labels("AVAILABLE"), "Đang cho thuê")
+        self.assertEqual(labels("COMPLETED"), "Hoàn tất")
+        self.assertEqual(labels("EXPIRED"), "Hết hạn")
+        self.assertEqual(labels("IN_USE"), "Đang sử dụng")
+        self.assertEqual(labels("UNEXPECTED"), "UNEXPECTED")
+
+    def test_notifications_are_grouped_by_vietnam_local_day(self):
+        items = [
+            Notification(
+                user_id=self.renter_id,
+                message="Today",
+                created_at=datetime(2026, 1, 7, 2),
+            ),
+            Notification(
+                user_id=self.renter_id,
+                message="Yesterday",
+                created_at=datetime(2026, 1, 6, 2),
+            ),
+            Notification(
+                user_id=self.renter_id,
+                message="Last week",
+                created_at=datetime(2025, 12, 30, 18),
+            ),
+        ]
+        groups = notification_service.group_by_date(items, date(2026, 1, 7))
+        self.assertEqual(
+            [group["label"] for group in groups],
+            ["Hôm nay", "Hôm qua", "Tuần trước"],
+        )
+
+    def test_mark_all_notifications_read_is_scoped_to_current_user(self):
+        with app.app_context():
+            db.session.add_all(
+                [
+                    Notification(user_id=self.renter_id, message="One"),
+                    Notification(user_id=self.renter_id, message="Two"),
+                    Notification(user_id=self.outsider_id, message="Other"),
+                ]
+            )
+            db.session.commit()
+
+        self._login_as(self.renter_id)
+        page = self.client.get("/thong-bao")
+        self.assertIn("2 chưa đọc · 2 tổng cộng", page.get_data(as_text=True))
+        page.close()
+        response = self.client.post(
+            "/thong-bao/doc-tat-ca",
+            data={"csrf_token": "test-csrf-token"},
+        )
+        self.assertEqual(response.status_code, 302)
+        response.close()
+
+        with app.app_context():
+            self.assertEqual(
+                Notification.query.filter_by(
+                    user_id=self.renter_id, read_at=None
+                ).count(),
+                0,
+            )
+            self.assertEqual(
+                Notification.query.filter_by(
+                    user_id=self.outsider_id, read_at=None
+                ).count(),
+                1,
+            )
+
+    def test_expired_booking_notification_is_created_once_per_party(self):
+        with app.app_context():
+            booking = Booking(
+                listing_id=self.listing_id,
+                renter_id=self.renter_id,
+                lender_id=self.lender_id,
+                start_date=date.today(),
+                end_date=date.today() + timedelta(days=1),
+                status="PENDING",
+                created_at=datetime.utcnow() - timedelta(days=2),
+            )
+            db.session.add(booking)
+            db.session.commit()
+            booking_id = booking.id
+            booking_service.expire_stale_bookings()
+            booking_service.expire_stale_bookings()
+
+            expiry_notifications = Notification.query.filter_by(
+                booking_id=booking_id,
+                message="Yêu cầu thuê đã hết hạn và được tự động đóng.",
+            ).all()
+            self.assertEqual(len(expiry_notifications), 2)
+            self.assertEqual(
+                {item.user_id for item in expiry_notifications},
+                {self.renter_id, self.lender_id},
+            )
+
+    def test_registration_form_describes_supported_email_and_demo_otp(self):
+        response = self.client.get("/dang-ky")
+        try:
+            body = response.get_data(as_text=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("ten@gmail.com", body)
+            self.assertNotIn(".edu.vn", body)
+            self.assertIn("chưa gửi qua SMS", body)
+        finally:
+            response.close()
+
+    def test_listing_form_exposes_dropzone_and_individual_image_removal(self):
+        with app.app_context():
+            lender = db.session.get(User, self.lender_id)
+            lender.email_verified = True
+            lender.phone_verified = True
+            lender.kyc_status = "APPROVED"
+            db.session.commit()
+
+        self._login_as(self.lender_id)
+        response = self.client.get("/dang-tin")
+        try:
+            body = response.get_data(as_text=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("data-listing-dropzone", body)
+            self.assertIn("data-listing-image-input", body)
+            self.assertIn("Kéo và thả ảnh vào đây", body)
+        finally:
+            response.close()
+
+    def test_edit_listing_removes_selected_images_and_preserves_shared_files(self):
+        with app.app_context():
+            listing = Listing(
+                owner_id=self.lender_id,
+                title="Editable listing",
+                description="Before",
+                category=CATEGORIES[0],
+                district=DISTRICTS[0],
+                price_per_day=100,
+                deposit_amount=0,
+            )
+            db.session.add(listing)
+            db.session.flush()
+            removed_image = ListingImage(
+                listing_id=listing.id, image_url="uploads/remove-me.jpg"
+            )
+            shared_image = ListingImage(
+                listing_id=listing.id, image_url="uploads/shared.jpg"
+            )
+            kept_image = ListingImage(
+                listing_id=listing.id, image_url="uploads/keep.jpg"
+            )
+            db.session.add_all(
+                [
+                    removed_image,
+                    shared_image,
+                    kept_image,
+                    ListingImage(
+                        listing_id=self.listing_id,
+                        image_url="uploads/shared.jpg",
+                    ),
+                ]
+            )
+            db.session.commit()
+            listing_id = listing.id
+            removed_id = removed_image.id
+            shared_id = shared_image.id
+
+            form = MultiDict(
+                [
+                    ("title", "Updated listing"),
+                    ("description", "After"),
+                    ("category", CATEGORIES[0]),
+                    ("district", DISTRICTS[0]),
+                    ("price_per_day", "200"),
+                    ("deposit_amount", "25"),
+                    ("remove_image_ids", str(removed_id)),
+                    ("remove_image_ids", str(shared_id)),
+                ]
+            )
+            files = FileMultiDict()
+            files.add_file(
+                "images",
+                FileStorage(
+                    stream=BytesIO(b"new image"),
+                    filename="new.jpg",
+                    content_type="image/jpeg",
+                ),
+            )
+
+            with patch(
+                "services.listing_service.save_listing_image",
+                return_value="https://images.example/new.jpg",
+            ), patch(
+                "services.listing_service.delete_listing_image",
+                return_value=True,
+            ) as delete_image:
+                updated, cleanup_complete = listing_service.update_listing(
+                    db.session.get(Listing, listing_id),
+                    self.lender_id,
+                    form,
+                    files,
+                    str(self.upload_root),
+                )
+
+            self.assertTrue(cleanup_complete)
+            self.assertEqual(updated.title, "Updated listing")
+            self.assertEqual(
+                {image.image_url for image in updated.images},
+                {"uploads/keep.jpg", "https://images.example/new.jpg"},
+            )
+            delete_image.assert_called_once_with("uploads/remove-me.jpg")
+
     def test_admin_dashboard_uses_authorized_evidence_route(self):
         self._login_as(self.admin_id)
         response = self.client.get("/admin")
         try:
             body = response.get_data(as_text=True)
             self.assertEqual(response.status_code, 200)
+            self.assertIn('href="/"', body)
+            self.assertIn('aria-label="UniRent - Về trang chủ"', body)
             self.assertIn(
                 f"/don-hang/{self.booking_id}/evidence/{self.evidence_id}",
                 body,

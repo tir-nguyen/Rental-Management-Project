@@ -19,7 +19,7 @@
     <a class="booking-card booking-list-card" href="{{ url_for('bookings.booking_detail', booking_id=b.id) }}">
       <div class="top">
         <span class="code">Mã HĐ #{{ '%04d'|format(b.id) }}</span>
-        <span class="status-pill st-{{ b.status }}">{{ b.status }}</span>
+        <span class="status-pill st-{{ b.status }}">{{ b.status|status_vi }}</span>
       </div>
       <div class="booking-card-title">{{ b.listing.title }}</div>
       <div class="booking-card-summary">

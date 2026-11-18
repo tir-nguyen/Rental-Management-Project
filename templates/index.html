@@ -28,10 +28,17 @@
         <a class="filter-link {{ 'active' if not selected_category else '' }}" href="{{ url_for('listings.index', q=q, district=selected_district, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">Tất cả danh mục</a>
         {% for c in categories %}<a class="filter-link {{ 'active' if selected_category==c else '' }}" href="{{ url_for('listings.index', q=q, district=selected_district, category=c, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">{{ c }}</a>{% endfor %}
       </section>
-      <section class="filter-panel"><div class="section-title"><h2>Khu vực</h2></div>
-        <a class="filter-link {{ 'active' if not selected_district else '' }}" href="{{ url_for('listings.index', q=q, category=selected_category, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">Toàn Hà Nội</a>
-        {% for d in districts %}<a class="filter-link {{ 'active' if selected_district==d else '' }}" href="{{ url_for('listings.index', q=q, category=selected_category, district=d, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">{{ d }}</a>{% endfor %}
-      </section>
+      <details class="filter-panel filter-accordion" {{ 'open' if selected_district else '' }}>
+        <summary class="section-title">
+          <h2>Khu vực</h2>
+          {% if selected_district %}<span class="filter-accordion-current">{{ selected_district }}</span>{% endif %}
+          <span class="filter-accordion-indicator" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="filter-accordion-links">
+          <a class="filter-link {{ 'active' if not selected_district else '' }}" href="{{ url_for('listings.index', q=q, category=selected_category, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">Toàn Hà Nội</a>
+          {% for d in districts %}<a class="filter-link {{ 'active' if selected_district==d else '' }}" href="{{ url_for('listings.index', q=q, category=selected_category, district=d, min_price=min_price, max_price=max_price, available_from=available_from, available_to=available_to) }}">{{ d }}</a>{% endfor %}
+        </div>
+      </details>
       <form method="get" class="filter-panel price-filter">
         {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}{% if selected_district %}<input type="hidden" name="district" value="{{ selected_district }}">{% endif %}{% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
         <div class="section-title"><h2>Giá &amp; thời gian</h2></div>

@@ -19,7 +19,7 @@
     <div class="field">
       <label>Mã OTP (4 số)</label>
       <input type="text" name="otp" maxlength="4" placeholder="4821">
-      <small>(Demo) Mã đã được gửi ở thông báo phía trên khi đăng ký.</small>
+      <small>Mã OTP demo hiển thị trong thông báo phía trên; hiện chưa tích hợp gửi SMS.</small>
     </div>
 
     <div class="divider"></div>
@@ -34,7 +34,7 @@
   </form>
 
   {% if current_user.kyc_status != "NONE" %}
-  <p class="muted auth-status">Trạng thái KYC hiện tại: <b>{{ current_user.kyc_status }}</b></p>
+  <p class="muted auth-status">Trạng thái KYC hiện tại: <b>{{ current_user.kyc_status|status_vi }}</b></p>
   {% endif %}
 </div>
 {% endblock %}

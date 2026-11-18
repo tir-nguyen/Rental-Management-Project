@@ -12,7 +12,7 @@
 <div class="booking-detail-page">
   <div class="booking-detail-heading">
     <h1>Đơn #{{ '%04d'|format(booking.id) }}</h1>
-    <span class="status-pill st-{{ booking.status }}">{{ booking.status }}</span>
+    <span class="status-pill st-{{ booking.status }}">{{ booking.status|status_vi }}</span>
   </div>
   {% if latest_payment and latest_payment.status == "PAID_REVIEW" %}
   <div class="flash flash-error">Đã nhận thanh toán nhưng đơn cần được kiểm tra và xử lý thủ công. Vui lòng liên hệ hỗ trợ.</div>
@@ -184,7 +184,7 @@
       <p class="muted">Đơn đang được Admin xem xét tranh chấp. Bạn sẽ nhận thông báo khi có kết quả.</p>
 
     {% elif booking.status in ("REJECTED", "CANCELLED", "EXPIRED") %}
-      <p class="muted">Đơn hàng đã kết thúc ở trạng thái {{ booking.status }}.</p>
+      <p class="muted">Đơn hàng đã kết thúc ở trạng thái {{ booking.status|status_vi }}.</p>
     {% endif %}
   </div>
 

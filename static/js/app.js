@@ -14,33 +14,127 @@ document.addEventListener("error", (event) => {
   }
 }, true);
 
-document.addEventListener("change", (event) => {
-  const input = event.target;
-  if (!(input instanceof HTMLInputElement) || !input.matches("[data-image-preview-input]")) return;
+const listingImageInput = document.querySelector("[data-listing-image-input]");
+const listingImagePreview = document.querySelector("[data-listing-image-preview]");
+const listingDropzone = document.querySelector("[data-listing-dropzone]");
 
-  const preview = document.getElementById(input.dataset.previewTarget);
-  if (!preview) return;
+if (listingImageInput && listingImagePreview && listingDropzone) {
+  let selectedImages = [];
+  let objectUrls = [];
+  const status = listingDropzone.querySelector("[data-dropzone-status]");
 
-  if (!input.dataset.initialPreview) {
-    input.dataset.initialPreview = preview.innerHTML;
-  }
-  for (const image of preview.querySelectorAll('img[src^="blob:"]')) {
-    URL.revokeObjectURL(image.src);
-  }
+  const syncSelectedFiles = () => {
+    const transfer = new DataTransfer();
+    selectedImages.forEach((file) => transfer.items.add(file));
+    listingImageInput.files = transfer.files;
+  };
 
-  if (!input.files?.length) {
-    preview.innerHTML = input.dataset.initialPreview;
-    return;
-  }
+  const renderSelectedImages = () => {
+    objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    objectUrls = [];
+    listingImagePreview.querySelectorAll("[data-new-image-preview]").forEach((item) => item.remove());
 
-  preview.replaceChildren();
-  for (const file of input.files) {
-    const image = document.createElement("img");
-    image.src = URL.createObjectURL(file);
-    image.alt = `Ảnh thay thế: ${file.name}`;
-    preview.append(image);
-  }
-});
+    selectedImages.forEach((file, index) => {
+      const figure = document.createElement("figure");
+      figure.className = "listing-image-preview-item";
+      figure.dataset.newImagePreview = "";
+
+      const image = document.createElement("img");
+      const imageUrl = URL.createObjectURL(file);
+      objectUrls.push(imageUrl);
+      image.src = imageUrl;
+      image.alt = `Ảnh xem trước: ${file.name}`;
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "listing-image-remove";
+      removeButton.dataset.removeSelectedImage = String(index);
+      removeButton.setAttribute("aria-label", `Xóa ảnh ${file.name}`);
+      removeButton.title = "Xóa ảnh";
+      removeButton.textContent = "×";
+
+      const caption = document.createElement("figcaption");
+      caption.textContent = file.name;
+      figure.append(image, removeButton, caption);
+      listingImagePreview.append(figure);
+    });
+
+    if (status) {
+      status.textContent = selectedImages.length
+        ? `Đã chọn ${selectedImages.length} ảnh mới.`
+        : "";
+    }
+  };
+
+  const addSelectedImages = (files) => {
+    const rejected = [];
+    for (const file of files) {
+      if (!/\.(jpe?g|png|webp|gif)$/i.test(file.name)) {
+        rejected.push(file.name);
+        continue;
+      }
+      const duplicate = selectedImages.some(
+        (selected) =>
+          selected.name === file.name &&
+          selected.size === file.size &&
+          selected.lastModified === file.lastModified
+      );
+      if (!duplicate) selectedImages.push(file);
+    }
+
+    syncSelectedFiles();
+    renderSelectedImages();
+    if (rejected.length && status) {
+      status.textContent = "Một số tệp không được thêm. Chỉ hỗ trợ JPG, PNG, WEBP hoặc GIF.";
+    }
+  };
+
+  listingImageInput.addEventListener("change", () => {
+    addSelectedImages(Array.from(listingImageInput.files || []));
+  });
+
+  listingImagePreview.addEventListener("click", (event) => {
+    const existingButton = event.target.closest("[data-toggle-image-removal]");
+    if (existingButton) {
+      const figure = existingButton.closest("[data-existing-image-preview]");
+      const removeInput = figure?.querySelector('input[name="remove_image_ids"]');
+      const removalLabel = figure?.querySelector("[data-image-removal-label]");
+      if (!figure || !removeInput) return;
+
+      const removePending = figure.dataset.removePending !== "true";
+      figure.dataset.removePending = String(removePending);
+      removeInput.disabled = !removePending;
+      existingButton.textContent = removePending ? "↶" : "×";
+      existingButton.setAttribute(
+        "aria-label",
+        removePending ? "Hoàn tác xóa ảnh" : "Đánh dấu xóa ảnh"
+      );
+      if (removalLabel) removalLabel.hidden = !removePending;
+      return;
+    }
+
+    const selectedButton = event.target.closest("[data-remove-selected-image]");
+    if (!selectedButton) return;
+    selectedImages.splice(Number(selectedButton.dataset.removeSelectedImage), 1);
+    syncSelectedFiles();
+    renderSelectedImages();
+  });
+
+  listingDropzone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    listingDropzone.classList.add("is-dragover");
+  });
+  listingDropzone.addEventListener("dragleave", (event) => {
+    if (!listingDropzone.contains(event.relatedTarget)) {
+      listingDropzone.classList.remove("is-dragover");
+    }
+  });
+  listingDropzone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    listingDropzone.classList.remove("is-dragover");
+    addSelectedImages(Array.from(event.dataTransfer?.files || []));
+  });
+}
 
 document.addEventListener("click", (event) => {
   const notificationToggle = event.target.closest("[data-notification-toggle]");

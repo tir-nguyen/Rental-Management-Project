@@ -3,6 +3,7 @@ import hmac
 import os
 import secrets
 import sys
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
@@ -34,6 +35,45 @@ app.config["PRIVATE_UPLOAD_FOLDER"] = os.path.join(
     app.instance_path, "private_uploads"
 )
 app.config["MAX_CONTENT_LENGTH"] = 40 * 1024 * 1024
+
+STATUS_LABELS_VI = {
+    "AVAILABLE": "Đang cho thuê",
+    "RENTED": "Đang được thuê",
+    "HIDDEN": "Đang ẩn",
+    "PENDING": "Đang chờ",
+    "APPROVED": "Đã duyệt",
+    "REJECTED": "Đã từ chối",
+    "EXPIRED": "Hết hạn",
+    "DEPOSIT_WAITING": "Chờ thanh toán",
+    "READY_FOR_PICKUP": "Chờ bàn giao",
+    "IN_USE": "Đang sử dụng",
+    "RETURN_PENDING": "Chờ xác nhận trả đồ",
+    "COMPLETED": "Hoàn tất",
+    "DISPUTED": "Đang tranh chấp",
+    "CANCELLED": "Đã hủy",
+    "NONE": "Chưa xác minh",
+    "FAILED": "Thất bại",
+    "SUCCESS": "Thành công",
+    "PAID_REVIEW": "Chờ đối soát",
+}
+VIETNAM_TIMEZONE = timezone(timedelta(hours=7))
+
+
+@app.template_filter("status_vi")
+def status_vi(status):
+    if status is None:
+        return ""
+    return STATUS_LABELS_VI.get(str(status), status)
+
+
+@app.template_filter("local_datetime")
+def local_datetime(value):
+    if value is None:
+        return ""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(VIETNAM_TIMEZONE)
+
 
 app.config["VNPAY_TMN_CODE"] = os.environ.get("VNPAY_TMN_CODE", "")
 app.config["VNPAY_HASH_SECRET"] = os.environ.get("VNPAY_HASH_SECRET", "")

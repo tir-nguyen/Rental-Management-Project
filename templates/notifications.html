@@ -8,34 +8,42 @@
       <h1>Thông báo</h1>
     </div>
     <div class="notifications-heading-actions">
-      <span class="notifications-total">{{ notifications|length }} thông báo</span>
+      <span class="notifications-total">{{ unread_notification_count }} chưa đọc · {{ notifications|length }} tổng cộng</span>
+      {% if unread_notification_count %}
+      <form method="post" action="{{ url_for('listings.mark_all_notifications_read') }}" class="mark-all-read-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn secondary mark-all-read-button" type="submit">Đánh dấu tất cả đã đọc</button>
+      </form>
+      {% endif %}
       {% if current_user.is_admin %}
       <a class="btn notifications-admin-link" href="{{ url_for('admin.admin_dashboard') }}">Đi tới duyệt hồ sơ</a>
       {% endif %}
     </div>
   </div>
-  <div class="notification-list">
     {% if notifications %}
-      {% for item in notifications %}
-      <article class="notification-card {{ 'read' if item.read_at else 'unread' }}">
-        <span class="notification-status-dot" aria-hidden="true"></span>
-        <div class="notification-card-content">
-          <p>{{ item.message }}</p>
+      {% for group in notification_groups %}
+      <section class="notification-date-group">
+        <h2>{{ group.label }}</h2>
+        <div class="notification-list">
+          {% for item in group.notifications %}
+          {% set local_created_at = item.created_at|local_datetime %}
+          <form method="post" action="{{ url_for('listings.mark_notification_read', notification_id=item.id) }}" class="notification-card-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="notification-card-action notification-card {{ 'read' if item.read_at else 'unread' }}">
+              <span class="notification-status-dot" aria-hidden="true"></span>
+              <span class="notification-card-content"><span>{{ item.message }}</span></span>
+              <time class="notification-timestamp" datetime="{{ local_created_at.isoformat() }}">
+                <span>{{ local_created_at.strftime('%d/%m/%Y') }}</span>
+                <span>{{ local_created_at.strftime('%H:%M') }}</span>
+              </time>
+              <span class="notification-row-arrow" aria-hidden="true">→</span>
+            </button>
+          </form>
+          {% endfor %}
         </div>
-        <time class="notification-timestamp" datetime="{{ item.created_at.isoformat() }}">
-          <span>{{ item.created_at.strftime('%d/%m/%Y') }}</span>
-          <span>{{ item.created_at.strftime('%H:%M') }}</span>
-        </time>
-        <form method="post" action="{{ url_for('listings.mark_notification_read', notification_id=item.id) }}" class="notification-form">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <button class="btn {{ 'secondary' if item.read_at else 'notification-open-button' }}" type="submit">
-            {{ 'Mở đơn hàng' if item.booking_id else ('Đã đọc' if item.read_at else 'Đánh dấu đã đọc') }}
-          </button>
-        </form>
-      </article>
+      </section>
       {% endfor %}
     {% else %}
       <div class="empty-state">Bạn chưa có thông báo nào.</div>
     {% endif %}
-  </div>
 {% endblock %}

@@ -89,7 +89,7 @@ def edit_listing(listing_id):
     has_active_bookings = listing_service.has_active_bookings(listing.id)
     if request.method == "POST":
         try:
-            listing = listing_service.update_listing(
+            listing, cleanup_complete = listing_service.update_listing(
                 listing, current_user.id, request.form, request.files,
                 current_app.config["UPLOAD_FOLDER"],
             )
@@ -100,7 +100,14 @@ def edit_listing(listing_id):
                 listing=listing, form_data=request.form,
                 has_active_bookings=has_active_bookings,
             )
-        flash("Đã cập nhật tin đăng.", "success")
+        if cleanup_complete:
+            flash("Đã cập nhật tin đăng.", "success")
+        else:
+            flash(
+                "Tin đã được cập nhật, nhưng một số ảnh chưa thể xóa khỏi kho lưu trữ. "
+                "Vui lòng kiểm tra log ứng dụng.",
+                "error",
+            )
         return redirect(url_for("listings.listing_detail", listing_id=listing.id))
 
     return render_template(
@@ -115,7 +122,12 @@ def my_listings():
 
 @login_required
 def notifications():
-    return render_template("notifications.html", notifications=notification_service.list_for_user(current_user.id))
+    notifications = notification_service.list_for_user(current_user.id)
+    return render_template(
+        "notifications.html",
+        notifications=notifications,
+        notification_groups=notification_service.group_by_date(notifications),
+    )
 
 @login_required
 def mark_notification_read(notification_id):
@@ -124,6 +136,17 @@ def mark_notification_read(notification_id):
         abort(403)
     if notification.booking_id:
         return redirect(url_for("bookings.booking_detail", booking_id=notification.booking_id))
+    return redirect(url_for("listings.notifications"))
+
+
+@login_required
+def mark_all_notifications_read():
+    count = notification_service.mark_all_read(current_user.id)
+    flash(
+        f"Đã đánh dấu {count} thông báo là đã đọc."
+        if count else "Không có thông báo chưa đọc.",
+        "success" if count else "info",
+    )
     return redirect(url_for("listings.notifications"))
 
 @login_required
@@ -192,6 +215,10 @@ listings_bp.add_url_rule("/thong-bao", endpoint="notifications", view_func=notif
 listings_bp.add_url_rule(
     "/thong-bao/<int:notification_id>/doc", endpoint="mark_notification_read",
     view_func=mark_notification_read, methods=["POST"],
+)
+listings_bp.add_url_rule(
+    "/thong-bao/doc-tat-ca", endpoint="mark_all_notifications_read",
+    view_func=mark_all_notifications_read, methods=["POST"],
 )
 listings_bp.add_url_rule(
     "/san-pham/<int:listing_id>/lich-ban", endpoint="block_listing_dates",

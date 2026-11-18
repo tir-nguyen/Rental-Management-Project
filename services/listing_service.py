@@ -1,7 +1,8 @@
 """Nghiệp vụ tin đăng: tìm kiếm/lọc, đăng tin, quản lý ảnh."""
 from datetime import datetime
 from models import (
-    db, Booking, Listing, ListingImage, AvailabilityBlock, CATEGORIES, DISTRICTS,
+    db, Booking, HandoverEvidence, Listing, ListingImage, AvailabilityBlock,
+    CATEGORIES, DISTRICTS, User,
 )
 from services.upload_service import (
     UploadError, delete_listing_image, save_listing_image,
@@ -54,6 +55,19 @@ def has_active_bookings(listing_id):
     ).first() is not None
 
 
+def _delete_unreferenced_listing_images(image_urls):
+    cleanup_complete = True
+    for image_url in set(image_urls):
+        if (
+            ListingImage.query.filter_by(image_url=image_url).first()
+            or User.query.filter_by(kyc_card_image=image_url).first()
+            or HandoverEvidence.query.filter_by(media_url=image_url).first()
+        ):
+            continue
+        cleanup_complete = delete_listing_image(image_url) and cleanup_complete
+    return cleanup_complete
+
+
 def block_dates(listing, owner_id, start_date, end_date):
     if listing.owner_id != owner_id:
         raise ListingError("Bạn không có quyền cập nhật lịch của tin này.")
@@ -104,11 +118,7 @@ def delete_listing(listing, owner_id):
     db.session.delete(listing)
     db.session.commit()
 
-    cleanup_complete = True
-    for image_url in image_urls:
-        if ListingImage.query.filter_by(image_url=image_url).first() is None:
-            cleanup_complete = delete_listing_image(image_url) and cleanup_complete
-    return cleanup_complete
+    return _delete_unreferenced_listing_images(image_urls)
 
 
 def create_listing(owner_id, form, files, upload_folder):
@@ -163,6 +173,16 @@ def update_listing(listing, owner_id, form, files, upload_folder):
     if has_active_bookings(listing.id):
         raise ListingError("Không thể chỉnh sửa tin khi đang có đơn thuê chưa hoàn tất.")
 
+    try:
+        remove_image_ids = {
+            int(value) for value in form.getlist("remove_image_ids")
+        }
+    except (TypeError, ValueError) as exc:
+        raise ListingError("Danh sách ảnh cần xóa không hợp lệ.") from exc
+    existing_images = list(listing.images)
+    if not remove_image_ids.issubset({image.id for image in existing_images}):
+        raise ListingError("Ảnh cần xóa không thuộc tin đăng này.")
+
     title = (form.get("title") or "").strip()
     description = (form.get("description") or "").strip()
     try:
@@ -200,8 +220,14 @@ def update_listing(listing, owner_id, form, files, upload_folder):
     listing.district = form.get("district")
     listing.price_per_day = price
     listing.deposit_amount = deposit
-    if new_images:
-        listing.images.clear()
-        listing.images.extend(new_images)
+    removed_images = [
+        image for image in existing_images if image.id in remove_image_ids
+    ]
+    for image in removed_images:
+        listing.images.remove(image)
+    listing.images.extend(new_images)
     db.session.commit()
-    return listing
+    cleanup_complete = _delete_unreferenced_listing_images(
+        image.image_url for image in removed_images
+    )
+    return listing, cleanup_complete

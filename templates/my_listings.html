@@ -33,32 +33,39 @@
           <div class="card-title">{{ l.title }}</div>
           <div class="card-price">{{ "{:,}".format(l.price_per_day) }}đ <small>/ ngày</small></div>
           <div class="card-meta"><span>{{ l.district }}</span><span>Cọc {{ "{:,}".format(l.deposit_amount) }}đ</span></div>
-          <span class="badge badge-owner">{{ l.status }}</span>
+          <span class="badge badge-owner">{{ l.status|status_vi }}</span>
         </div>
       </a>
       <div class="my-listing-tools">
-      <a class="btn secondary" href="{{ url_for('listings.edit_listing', listing_id=l.id) }}">Chỉnh sửa tin</a>
-      <form method="post" action="{{ url_for('listings.toggle_listing_visibility', listing_id=l.id) }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button class="btn secondary" type="submit">{{ 'Hiện tin' if l.status == 'HIDDEN' else 'Ẩn tin' }}</button>
-      </form>
-      <form method="post" action="{{ url_for('listings.delete_listing', listing_id=l.id) }}" onsubmit="return confirm('Bạn có chắc muốn xóa tin này không? Hành động này không thể hoàn tác.');">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button class="btn danger listing-delete-button" type="submit">Xóa tin</button>
-      </form>
-      <form method="post" action="{{ url_for('listings.block_listing_dates', listing_id=l.id) }}" class="field-row listing-block-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <div class="field"><label>Khóa từ</label><input type="date" name="start_date" required></div>
-        <div class="field"><label>Đến ngày</label><input type="date" name="end_date" required></div>
-        <button class="btn" type="submit">Khóa lịch</button>
-      </form>
-      {% for block in l.blocks if block.reason == 'LENDER_BLOCKED' %}
-      <form method="post" action="{{ url_for('listings.remove_listing_block', block_id=block.id) }}" class="blocked-date">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        Đã khóa {{ block.start_date.strftime('%d/%m/%Y') }}–{{ block.end_date.strftime('%d/%m/%Y') }}
-        <button class="btn ghost" type="submit">Bỏ khóa</button>
-      </form>
-      {% endfor %}
+        <div class="my-listing-action-row">
+          <a class="btn my-listing-edit" href="{{ url_for('listings.edit_listing', listing_id=l.id) }}">Chỉnh sửa tin</a>
+          <form method="post" action="{{ url_for('listings.toggle_listing_visibility', listing_id=l.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="btn secondary my-listing-visibility" type="submit">{{ 'Hiện tin' if l.status == 'HIDDEN' else 'Ẩn tin' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('listings.delete_listing', listing_id=l.id) }}" data-confirm="Bạn có chắc muốn xóa tin này không? Hành động này không thể hoàn tác.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="my-listing-delete-icon" type="submit" aria-label="Xóa tin {{ l.title }}" title="Xóa tin">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg>
+            </button>
+          </form>
+        </div>
+        <details class="listing-calendar">
+          <summary>Quản lý lịch bận</summary>
+          <form method="post" action="{{ url_for('listings.block_listing_dates', listing_id=l.id) }}" class="field-row listing-block-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="field"><label>Khóa từ</label><input type="date" name="start_date" required></div>
+            <div class="field"><label>Đến ngày</label><input type="date" name="end_date" required></div>
+            <button class="btn" type="submit">Khóa lịch</button>
+          </form>
+          {% for block in l.blocks if block.reason == 'LENDER_BLOCKED' %}
+          <form method="post" action="{{ url_for('listings.remove_listing_block', block_id=block.id) }}" class="blocked-date">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            Đã khóa {{ block.start_date.strftime('%d/%m/%Y') }}–{{ block.end_date.strftime('%d/%m/%Y') }}
+            <button class="btn ghost" type="submit">Bỏ khóa</button>
+          </form>
+          {% endfor %}
+        </details>
       </div>
     </article>
     {% endfor %}

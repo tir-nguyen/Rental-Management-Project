@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Chỉnh sửa tin đăng' if listing else 'Đăng Tin Thuê Đồ' }}{% endblock %}
+{% block title %}{{ 'Chỉnh sửa tin đăng' if listing else 'Đăng tin thuê đồ' }}{% endblock %}
 {% block page_class %}listing-form-page{% endblock %}
 {% block content %}
   {% set title_value = form_data.get('title', listing.title if listing else '') if form_data else (listing.title if listing else '') %}
@@ -16,22 +16,32 @@
     <section class="listing-form-section">
       <div class="listing-form-section-heading">
         <h2>Ảnh sản phẩm</h2>
-        <p class="muted">{{ 'Ảnh tải lên mới sẽ thay thế toàn bộ ảnh hiện tại.' if listing else 'Ảnh rõ ràng giúp người thuê dễ đánh giá món đồ.' }}</p>
+        <p class="muted">{{ 'Thêm ảnh mới hoặc đánh dấu ảnh hiện tại cần xóa.' if listing else 'Ảnh rõ ràng giúp người thuê dễ đánh giá món đồ.' }}</p>
       </div>
-      <div class="listing-edit-images" id="listing-image-preview">
+      <div class="listing-edit-images" id="listing-image-preview" data-listing-image-preview>
         {% if listing %}
         {% for image in listing.images %}
-        <img
-  src="{{ image.image_url if image.image_url.startswith('https://') or image.image_url.startswith('http://') else url_for('static', filename=image.image_url) }}"
-  alt="Ảnh hiện tại {{ loop.index }}"
-  loading="lazy">
+        <figure class="listing-image-preview-item" data-existing-image-preview>
+          <img
+            src="{{ image.image_url if image.image_url.startswith('https://') or image.image_url.startswith('http://') else url_for('static', filename=image.image_url) }}"
+            alt="Ảnh hiện tại {{ loop.index }}"
+            loading="lazy">
+          <button type="button" class="listing-image-remove" data-toggle-image-removal aria-label="Đánh dấu xóa ảnh hiện tại {{ loop.index }}" title="Xóa ảnh">×</button>
+          <input type="hidden" name="remove_image_ids" value="{{ image.id }}" disabled>
+          <figcaption data-image-removal-label hidden>Sẽ xóa khi lưu</figcaption>
+        </figure>
         {% endfor %}
         {% endif %}
       </div>
-      <div class="field listing-upload">
-        <label>{{ 'Chọn ảnh thay thế' if listing else 'Tải lên hình ảnh món đồ' }}</label>
-        <input type="file" name="images" accept="image/*" multiple data-image-preview-input data-preview-target="listing-image-preview">
-        <small>Hỗ trợ JPG, PNG, có thể chọn nhiều ảnh</small>
+      <div class="listing-upload" data-listing-dropzone>
+        <input id="listing-images" class="listing-file-input" type="file" name="images" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-listing-image-input>
+        <div class="listing-dropzone-copy">
+          <strong>Kéo và thả ảnh vào đây</strong>
+          <span>hoặc</span>
+          <label for="listing-images" class="listing-dropzone-trigger">Chọn ảnh từ thiết bị</label>
+        </div>
+        <small>JPG, PNG, WEBP hoặc GIF · Có thể chọn nhiều ảnh</small>
+        <small class="listing-dropzone-status" data-dropzone-status role="status" aria-live="polite"></small>
       </div>
     </section>
 
@@ -85,7 +95,7 @@
     {% if has_active_bookings %}
     <div class="listing-edit-warning">Tin đang có đơn thuê chưa hoàn tất nên tạm thời không thể chỉnh sửa.</div>
     {% else %}
-    <button class="btn listing-submit" type="submit">{{ 'Lưu thay đổi' if listing else 'Đăng Tin Ngay' }}</button>
+    <button class="btn listing-submit" type="submit">{{ 'Lưu thay đổi' if listing else 'Đăng tin ngay' }}</button>
     {% endif %}
   </form>
 
